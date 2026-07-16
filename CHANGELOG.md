@@ -21,3 +21,4 @@ All notable changes to this project will be documented in this file. The format 
   builds do not reference the API 27-only theme attribute.
 - Enable KVM access for the ephemeral Linux CI runner so the API 35 emulator
   boots within the instrumentation-test timeout.
+- Restore the Gradle wrapper's executable bit before Linux emulator tests.
