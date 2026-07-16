@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VoiceAsset</string>
+    <string name="app_description">Your self-hosted voice asset library.</string>
+    <string name="app_status">App status</string>
+    <string name="initialized">Initialized</string>
+    <string name="initialized_description">Local application services are ready.</string>
+    <string name="server_status">Server status</string>
+    <string name="server_not_configured">Server not configured</string>
+    <string name="server_not_configured_description">Add a VoiceAsset Server profile before recording or syncing assets.</string>
+</resources>
