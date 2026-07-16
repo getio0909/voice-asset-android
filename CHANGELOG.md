@@ -17,3 +17,5 @@ All notable changes to this project will be documented in this file. The format 
 
 - Compile and target the current stable Android 16 SDK (API 36), matching the
   package available from the official stable SDK channel.
+- Let the edge-to-edge runtime configure navigation bar icon contrast so API 26
+  builds do not reference the API 27-only theme attribute.
