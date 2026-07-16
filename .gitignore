@@ -6,6 +6,9 @@
 build/
 captures/
 local.properties
+/.env
+/.env.*
+!/.env.example
 app/build/
 sbom.cdx.json
 *.jks
