@@ -5,7 +5,7 @@ Native Android client for the VoiceAsset self-hosted voice asset platform. This 
 ## Requirements
 
 - JDK 21
-- Android SDK Platform 37
+- Android SDK Platform 36
 - Android SDK Build Tools 36.0.0
 
 Create `local.properties` with `sdk.dir=C:\path\to\Android\Sdk`, or set `ANDROID_HOME`. Do not commit `local.properties`.

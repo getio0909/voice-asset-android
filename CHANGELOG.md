@@ -12,3 +12,8 @@ All notable changes to this project will be documented in this file. The format 
 - Ktlint formatting, emulator instrumentation CI, and a dependency-level
   CycloneDX SBOM with license-policy validation.
 - Contract pin, architecture baseline, and API 26 decision record.
+
+### Fixed
+
+- Compile and target the current stable Android 16 SDK (API 36), matching the
+  package available from the official stable SDK channel.
