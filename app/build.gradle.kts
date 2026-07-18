@@ -114,6 +114,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.google.play.services.code.scanner)
+    implementation(libs.androidx.fragment)
 
     ksp(libs.androidx.room.compiler)
 

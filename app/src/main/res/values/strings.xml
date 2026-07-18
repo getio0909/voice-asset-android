@@ -22,11 +22,13 @@
     <string name="server_password">Account password</string>
     <string name="server_password_hint">Used only to create a device session.</string>
     <string name="pair_server_title">Pair with a one-time code</string>
-    <string name="pair_server_description">Paste the one-time code created by the VoiceAsset Console. It is cleared before the network request and never stored.</string>
+    <string name="pair_server_description">Scan the QR code or paste the one-time code created by the VoiceAsset Console. It is cleared before the network request and never stored.</string>
     <string name="pairing_payload">One-time pairing code</string>
     <string name="pairing_payload_hint">Requires a compatible HTTPS server and expires after five minutes.</string>
     <string name="pair_server">Pair this device</string>
     <string name="pairing_server">Pairing…</string>
+    <string name="scan_pairing_code">Scan QR code</string>
+    <string name="pairing_scan_failed">The QR scanner is unavailable. Paste the one-time code instead.</string>
     <string name="upload_policy">Upload policy</string>
     <string name="upload_policy_manual">Manual</string>
     <string name="upload_policy_any_network">Any network</string>
