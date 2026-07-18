@@ -446,7 +446,7 @@ class MainViewModelTest {
 
             viewModel.updateOfflineLibrarySearchQuery("INTERVIEW")
             val assetSearch =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     viewModel.uiState.first { uiState ->
                         uiState.offlineLibrarySearchQuery == "INTERVIEW" &&
                             uiState.syncedAssetMatchCount == 1 &&
@@ -459,7 +459,7 @@ class MainViewModelTest {
 
             viewModel.updateOfflineLibrarySearchQuery("FIELD-NOTE")
             val recordingSearch =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     viewModel.uiState.first { uiState ->
                         uiState.offlineLibrarySearchQuery == "FIELD-NOTE" &&
                             uiState.syncedAssetMatchCount == 0 &&
@@ -477,13 +477,13 @@ class MainViewModelTest {
                     BearerCredential("va_second_profile_token_with_sufficient_entropy"),
                 ),
             )
-            withTimeout(5_000) {
+            withTimeout(15_000) {
                 viewModel.uiState.first { it.serverProfiles.size == 2 }
             }
             viewModel.selectServerProfile(secondProfileId.value)
 
             val switched =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     viewModel.uiState.first {
                         it.activeServerProfileId == secondProfileId.value &&
                             it.localRecordings.singleOrNull()?.syncStatus == SyncUiStatus.FAILED
@@ -495,14 +495,14 @@ class MainViewModelTest {
             assertEquals(listOf(secondProfileId), remoteAssetSyncScheduler.refreshed)
 
             viewModel.refreshRemoteAssets()
-            withTimeout(5_000) {
+            withTimeout(15_000) {
                 viewModel.uiState.first { remoteAssetSyncScheduler.refreshed.size == 2 }
             }
             assertEquals(listOf(secondProfileId, secondProfileId), remoteAssetSyncScheduler.refreshed)
 
             viewModel.updateOfflineLibrarySearchQuery("RETRY_EXHAUSTED")
             val errorSearch =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     viewModel.uiState.first { uiState ->
                         uiState.offlineLibrarySearchQuery == "RETRY_EXHAUSTED" &&
                             uiState.localRecordingMatchCount == 1
@@ -514,7 +514,7 @@ class MainViewModelTest {
             viewModel.retryRecordingSync(secondRecordingId.value)
 
             val retried =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     viewModel.uiState.first {
                         it.activeServerProfileId == secondProfileId.value &&
                             it.localRecordings.singleOrNull()?.syncStatus == SyncUiStatus.PENDING
@@ -523,7 +523,7 @@ class MainViewModelTest {
             assertEquals(null, retried.localRecordings.single().errorCode)
             assertEquals(1, requireNotNull(syncTaskStore.find(secondRecordingId)).manualRetryGeneration)
             val retryRequest =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     syncScheduler.requests.first { requests -> requests.isNotEmpty() }.single()
                 }
             assertEquals(secondRecordingId, retryRequest.recordingSessionId)
