@@ -6,10 +6,15 @@ import android.provider.OpenableColumns
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.VoiceAssetApplication
+import com.voiceasset.android.data.RecordingStore
+import com.voiceasset.android.data.StoredRecording
+import com.voiceasset.android.data.StoredRecordingStatus
 import com.voiceasset.core.model.LocalRecording
 import com.voiceasset.core.model.RecordingSession
 import com.voiceasset.core.model.RecordingSessionId
 import com.voiceasset.core.model.RecordingState
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -39,23 +44,35 @@ class RecordingExporterTest {
                     fileName = fileName,
                     startedAtEpochMillis = 1,
                 )
-            val store = application.container.recordings
-            store.persist(RecordingState.Starting(session), 1)
-            store.persist(RecordingState.Recording(session), 2)
-            store.persist(RecordingState.Stopping(session), 3)
-            store.persist(
-                RecordingState.Saved(
-                    LocalRecording(
-                        sessionId = recordingId,
-                        fileName = fileName,
-                        durationMillis = 1_000,
-                        sizeBytes = bytes.size.toLong(),
-                        sha256 = bytes.sha256(),
-                        stoppedAtEpochMillis = 4,
-                    ),
-                ),
-                5,
-            )
+            val recording =
+                LocalRecording(
+                    sessionId = recordingId,
+                    fileName = fileName,
+                    durationMillis = 1_000,
+                    sizeBytes = bytes.size.toLong(),
+                    sha256 = bytes.sha256(),
+                    stoppedAtEpochMillis = 4,
+                )
+            val store =
+                object : RecordingStore {
+                    private val stored = StoredRecording(session, StoredRecordingStatus.SAVED, recording, null, 5)
+
+                    override fun observeAll(): Flow<List<StoredRecording>> = flowOf(listOf(stored))
+
+                    override suspend fun find(id: RecordingSessionId): StoredRecording? = stored.takeIf { it.session.id == id }
+
+                    override suspend fun loadRecoverable(): List<StoredRecording> = emptyList()
+
+                    override suspend fun recoverSaved(
+                        recording: LocalRecording,
+                        updatedAtEpochMillis: Long,
+                    ) = error("not used")
+
+                    override suspend fun persist(
+                        state: RecordingState,
+                        updatedAtEpochMillis: Long,
+                    ) = error("not used")
+                }
 
             try {
                 val exporter = RecordingExporter(application, store)

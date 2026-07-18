@@ -3,11 +3,9 @@ package com.voiceasset.android.playback
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.VoiceAssetApplication
-import com.voiceasset.android.export.RecordingFileVerifier
-import com.voiceasset.core.model.LocalRecording
-import com.voiceasset.core.model.RecordingSession
+import com.voiceasset.android.export.RecordingFileResolver
+import com.voiceasset.android.export.VerifiedRecordingFile
 import com.voiceasset.core.model.RecordingSessionId
-import com.voiceasset.core.model.RecordingState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,36 +31,20 @@ class RecordingPlaybackControllerTest {
             val fileName = "${recordingId.value}.m4a"
             val directory = File(application.filesDir, "recordings").apply { mkdirs() }
             val file = File(directory, fileName).apply { writeBytes(bytes) }
-            val session =
-                RecordingSession(
-                    id = recordingId,
-                    fileName = fileName,
-                    startedAtEpochMillis = 1,
-                )
-            val store = application.container.recordings
-            store.persist(RecordingState.Starting(session), 1)
-            store.persist(RecordingState.Recording(session), 2)
-            store.persist(RecordingState.Stopping(session), 3)
-            store.persist(
-                RecordingState.Saved(
-                    LocalRecording(
-                        sessionId = recordingId,
-                        fileName = fileName,
-                        durationMillis = 1_000,
-                        sizeBytes = bytes.size.toLong(),
-                        sha256 = bytes.sha256(),
-                        stoppedAtEpochMillis = 4,
-                    ),
-                ),
-                5,
-            )
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
             val engine = TestPlaybackEngine()
             val focus = TestPlaybackFocus()
             val controller =
                 RecordingPlaybackController(
                     scope = scope,
-                    verifier = RecordingFileVerifier(application, store),
+                    verifier =
+                        RecordingFileResolver { requestedId ->
+                            if (requestedId == recordingId) {
+                                VerifiedRecordingFile(file, fileName, "audio/mp4")
+                            } else {
+                                null
+                            }
+                        },
                     engineFactory = RecordingPlaybackEngineFactory { engine },
                     focusFactory = RecordingPlaybackFocusFactory { focus },
                 )

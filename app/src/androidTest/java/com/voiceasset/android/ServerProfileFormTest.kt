@@ -109,7 +109,8 @@ class ServerProfileFormTest {
             .performScrollTo()
             .performClick()
         composeRule.onNodeWithText(context.getString(R.string.transcription_policy_manual)).performClick()
-        composeRule.onNodeWithText(context.getString(R.string.save_server)).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(context.getString(R.string.save_server)).performScrollTo().performClick()
 
         assertTrue(saveRequested)
         assertEquals(UploadPolicy.ANY_NETWORK, state.serverDraft.uploadPolicy)

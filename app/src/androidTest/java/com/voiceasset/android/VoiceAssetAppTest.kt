@@ -107,6 +107,9 @@ class VoiceAssetAppTest {
         composeRule
             .onNodeWithTag(SESSION_RECONNECT_SUBMIT_TEST_TAG)
             .performScrollTo()
+        composeRule.waitForIdle()
+        composeRule
+            .onNodeWithTag(SESSION_RECONNECT_SUBMIT_TEST_TAG)
             .performClick()
         composeRule.runOnIdle {
             assertEquals("owner@example.test", observedEmail)
@@ -167,6 +170,7 @@ class VoiceAssetAppTest {
             }
         }
 
+        composeRule.waitForIdle()
         composeRule
             .onNodeWithTag(REFRESH_DEVICE_SESSIONS_TEST_TAG)
             .performScrollTo()
@@ -372,9 +376,8 @@ class VoiceAssetAppTest {
             assertEquals("field", searchQuery)
         }
         composeRule
-            .onNodeWithText("Playback controls for a recording hidden by the current search.")
-            .performScrollTo()
-            .assertIsDisplayed()
+            .onAllNodesWithText("Playback controls for a recording hidden by the current search.")
+            .assertCountEquals(1)
         composeRule.onNodeWithText("Stop playback").performScrollTo().performClick()
         composeRule.runOnIdle {
             assertEquals(true, stoppedHiddenPlayback)
