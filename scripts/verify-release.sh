@@ -26,7 +26,10 @@ done
 
 cd -- "$repo_root"
 version_name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)
-[[ -n $version_name && $version == "v$version_name" ]] ||
+base_version=${version#v}
+base_version=${base_version%%-*}
+base_version=${base_version%%+*}
+[[ -n $version_name && $base_version == "$version_name" ]] ||
   fail "tag $version does not match Android version v$version_name"
 
 apk_name="voiceasset-android-$version.apk"

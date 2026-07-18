@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Changed
 
+- Accept semver prerelease tags for the matching Android base version and emit
+  binary-mode SHA-256 entries so hosted release verification accepts APK/AAB
+  checksums consistently with the other repositories.
 - Added repository-outside RSA-4096 release signing with GitHub Actions Secret
   restoration, signed APK/AAB checksum verification, and same-repository PR
   release artifacts. The keystore and passwords remain outside Git.

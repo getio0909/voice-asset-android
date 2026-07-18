@@ -24,7 +24,10 @@ done
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 cd -- "$repo_root"
 version_name=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)
-[[ -n $version_name && $version == "v$version_name" ]] ||
+base_version=${version#v}
+base_version=${base_version%%-*}
+base_version=${base_version%%+*}
+[[ -n $version_name && $base_version == "$version_name" ]] ||
   fail "tag $version does not match Android version v$version_name"
 
 mapfile -t apks < <(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' ! -name '*-unsigned.apk' -print | LC_ALL=C sort)
@@ -59,7 +62,7 @@ cp -- "${bundles[0]}" "$staging/voiceasset-android-$version.aab"
 cp -- app/build/reports/cyclonedx-direct/bom.json "$staging/voiceasset-android.cdx.json"
 (
   cd -- "$staging"
-  sha256sum -- ./*.aab ./*.apk ./*.json >SHA256SUMS
+  sha256sum --binary -- ./*.aab ./*.apk ./*.json >SHA256SUMS
 )
 mv -- "$staging"/* "$output_dir/"
 
