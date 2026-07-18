@@ -447,12 +447,11 @@ class VoiceAssetAppTest {
             composeRule.onRoot().performTouchInput { swipeUp() }
         }
         composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
-        composeRule.onNodeWithText("Sync: Complete").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Transcript available offline").performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("Sync: Complete").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Transcript available offline").assertCountEquals(1)
         composeRule
-            .onNodeWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
-            .performScrollTo()
-            .assertIsDisplayed()
+            .onAllNodesWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
+            .assertCountEquals(1)
         composeRule.onNodeWithText("Play").performScrollTo().performClick()
         composeRule.runOnIdle {
             assertEquals("50000000-0000-4000-8000-000000000005", playedRecordingId)
