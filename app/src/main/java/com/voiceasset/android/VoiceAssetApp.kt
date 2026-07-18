@@ -69,6 +69,10 @@ internal const val PROVIDER_PROFILE_HEALTH_TEST_TAG_PREFIX = "provider-profile-h
 internal const val ADMINISTRATION_JOB_RETRY_TEST_TAG_PREFIX = "administration-job-retry-"
 internal const val PAIRING_PAYLOAD_TEST_TAG = "pairing-payload"
 internal const val PAIR_SERVER_TEST_TAG = "pair-server"
+internal const val SERVER_NAME_TEST_TAG = "server-name"
+internal const val SERVER_URL_TEST_TAG = "server-url"
+internal const val SERVER_EMAIL_TEST_TAG = "server-email"
+internal const val SERVER_PASSWORD_TEST_TAG = "server-password"
 private const val MAX_MOBILE_ADMINISTRATION_JOBS = 10
 
 @Composable
@@ -1863,7 +1867,7 @@ private fun ServerProfileForm(
         OutlinedTextField(
             value = draft.name,
             onValueChange = onNameChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(SERVER_NAME_TEST_TAG),
             label = { Text(stringResource(R.string.server_name)) },
             singleLine = true,
             enabled = !isSaving,
@@ -1871,7 +1875,7 @@ private fun ServerProfileForm(
         OutlinedTextField(
             value = draft.baseUrl,
             onValueChange = onUrlChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(SERVER_URL_TEST_TAG),
             label = { Text(stringResource(R.string.server_url)) },
             supportingText = { Text(stringResource(R.string.server_url_hint)) },
             singleLine = true,
@@ -1880,7 +1884,7 @@ private fun ServerProfileForm(
         OutlinedTextField(
             value = draft.email,
             onValueChange = onEmailChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(SERVER_EMAIL_TEST_TAG),
             label = { Text(stringResource(R.string.server_email)) },
             keyboardOptions =
                 KeyboardOptions(
@@ -1893,7 +1897,7 @@ private fun ServerProfileForm(
         OutlinedTextField(
             value = draft.password.value,
             onValueChange = onPasswordChanged,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag(SERVER_PASSWORD_TEST_TAG),
             label = { Text(stringResource(R.string.server_password)) },
             supportingText = { Text(stringResource(R.string.server_password_hint)) },
             visualTransformation = PasswordVisualTransformation(),

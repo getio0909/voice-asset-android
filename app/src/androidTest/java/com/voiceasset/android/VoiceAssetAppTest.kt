@@ -47,7 +47,7 @@ class VoiceAssetAppTest {
         val optionalServerDescription = composeRule.activity.getString(R.string.add_server_profile_description)
 
         composeRule.onNodeWithText(initialized).assertIsDisplayed()
-        composeRule.onNodeWithText(serverNotConfigured).assertIsDisplayed()
+        composeRule.onNodeWithText(serverNotConfigured).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(localFirstDescription).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(recordingReady).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(localRecordings).performScrollTo().assertIsDisplayed()
@@ -102,9 +102,11 @@ class VoiceAssetAppTest {
             .performTextInput("owner@example.test")
         composeRule
             .onNodeWithTag(SESSION_RECONNECT_PASSWORD_TEST_TAG)
+            .performScrollTo()
             .performTextInput("new-password")
         composeRule
             .onNodeWithTag(SESSION_RECONNECT_SUBMIT_TEST_TAG)
+            .performScrollTo()
             .performClick()
         composeRule.runOnIdle {
             assertEquals("owner@example.test", observedEmail)
@@ -364,7 +366,7 @@ class VoiceAssetAppTest {
             }
         }
 
-        composeRule.onNodeWithText("Cached offline transcript").assertIsDisplayed()
+        composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextInput("field")
         composeRule.runOnIdle {
             assertEquals("field", searchQuery)

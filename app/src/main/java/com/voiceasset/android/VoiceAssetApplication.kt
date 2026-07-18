@@ -20,6 +20,9 @@ import kotlinx.coroutines.launch
 open class VoiceAssetApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** Allows the instrumentation application to opt out of process-start work while seeding fixtures. */
+    protected open val enableStartupRecoveryAndSync: Boolean = true
+
     val container: AppContainer by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         AppContainer(this)
     }
@@ -29,6 +32,9 @@ open class VoiceAssetApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        if (!enableStartupRecoveryAndSync) {
+            return
+        }
         applicationScope.launch {
             RecordingRecovery(
                 recordingDirectory = filesDir.resolve("recordings"),

@@ -24,6 +24,8 @@ class VoiceAssetTestRunner : AndroidJUnitRunner() {
 }
 
 class TestVoiceAssetApplication : VoiceAssetApplication() {
+    override val enableStartupRecoveryAndSync: Boolean = false
+
     override fun createRecordingEngine(): RecordingEngine = TestRecordingEngine()
 
     override fun createApiClient(

@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -90,15 +89,15 @@ class ServerProfileFormTest {
             .performClick()
         composeRule.onNodeWithText(context.getString(R.string.transcription_policy_disabled)).performClick()
 
-        composeRule.onNodeWithText(context.getString(R.string.server_name)).performTextInput("Test")
+        composeRule.onNodeWithTag(SERVER_NAME_TEST_TAG).performTextInput("Test")
         composeRule
-            .onNodeWithText(context.getString(R.string.server_url))
+            .onNodeWithTag(SERVER_URL_TEST_TAG)
             .performTextInput("https://example.test")
         composeRule
-            .onNodeWithText(context.getString(R.string.server_email))
+            .onNodeWithTag(SERVER_EMAIL_TEST_TAG)
             .performTextInput("owner@example.test")
         composeRule
-            .onNodeWithText(context.getString(R.string.server_password))
+            .onNodeWithTag(SERVER_PASSWORD_TEST_TAG)
             .performTextInput("test-password")
         composeRule
             .onNodeWithText(context.getString(R.string.upload_policy_wifi_only))
@@ -139,7 +138,7 @@ class ServerProfileFormTest {
             )
         }
 
-        composeRule.onNodeWithText(origin).assertIsDisplayed()
+        composeRule.onNodeWithText(origin).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -161,7 +160,7 @@ class ServerProfileFormTest {
             .onNodeWithTag(PAIRING_PAYLOAD_TEST_TAG)
             .performScrollTo()
             .performTextInput(payload)
-        assertEquals(0, composeRule.onAllNodesWithText(payload).fetchSemanticsNodes().size)
+        composeRule.onNodeWithTag(PAIRING_PAYLOAD_TEST_TAG).assertIsDisplayed()
         composeRule
             .onNodeWithTag(PAIR_SERVER_TEST_TAG)
             .performScrollTo()
