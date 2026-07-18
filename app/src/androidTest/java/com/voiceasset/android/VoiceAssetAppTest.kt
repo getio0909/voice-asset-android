@@ -1,13 +1,13 @@
 package com.voiceasset.android
 
-import androidx.activity.compose.setContent
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.administration.ProviderProfileFamily
 import com.voiceasset.android.playback.RecordingPlaybackStatus
@@ -35,16 +36,18 @@ private const val REMOTE_DEVICE_SESSION_ID = "92000000-0000-4000-8000-0000000000
 @RunWith(AndroidJUnit4::class)
 class VoiceAssetAppTest {
     @get:Rule
-    val composeRule = createAndroidComposeRule<MainActivity>()
+    val composeRule = createComposeRule()
+
+    private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @Test
     fun startupShowsInitializedAndServerNotConfiguredStates() {
-        val initialized = composeRule.activity.getString(R.string.initialized)
-        val serverNotConfigured = composeRule.activity.getString(R.string.server_not_configured)
-        val recordingReady = composeRule.activity.getString(R.string.recording_ready)
-        val localFirstDescription = composeRule.activity.getString(R.string.recording_local_first_description)
-        val localRecordings = composeRule.activity.getString(R.string.local_recordings)
-        val optionalServerDescription = composeRule.activity.getString(R.string.add_server_profile_description)
+        val initialized = context.getString(R.string.initialized)
+        val serverNotConfigured = context.getString(R.string.server_not_configured)
+        val recordingReady = context.getString(R.string.recording_ready)
+        val localFirstDescription = context.getString(R.string.recording_local_first_description)
+        val localRecordings = context.getString(R.string.local_recordings)
+        val optionalServerDescription = context.getString(R.string.add_server_profile_description)
 
         composeRule.onNodeWithText(initialized).assertIsDisplayed()
         composeRule.onNodeWithText(serverNotConfigured).performScrollTo().assertIsDisplayed()
@@ -59,42 +62,39 @@ class VoiceAssetAppTest {
         var observedEmail = ""
         var observedPassword = ""
         var submitted = false
-        composeRule.waitForIdle()
-        composeRule.activity.runOnUiThread {
-            composeRule.activity.setContent {
-                var email by remember { mutableStateOf("") }
-                var password by remember { mutableStateOf("") }
-                VoiceAssetApp(
-                    uiState =
-                        initialAppUiState().copy(
-                            serverStatus = ServerStatus.CONFIGURED,
-                            serverProfiles =
-                                listOf(
-                                    ServerProfileSummary(
-                                        id = DEVICE_PROFILE_ID,
-                                        name = "Primary server",
-                                        origin = "https://api.getio.net:10443",
-                                        isActive = true,
-                                    ),
+        composeRule.setContent {
+            var email by remember { mutableStateOf("") }
+            var password by remember { mutableStateOf("") }
+            VoiceAssetApp(
+                uiState =
+                    initialAppUiState().copy(
+                        serverStatus = ServerStatus.CONFIGURED,
+                        serverProfiles =
+                            listOf(
+                                ServerProfileSummary(
+                                    id = DEVICE_PROFILE_ID,
+                                    name = "Primary server",
+                                    origin = "https://api.getio.net:10443",
+                                    isActive = true,
                                 ),
-                            activeServerProfileId = DEVICE_PROFILE_ID,
-                            serverSessionReconnect =
-                                ServerSessionReconnectUiState(
-                                    email = email,
-                                    password = SecretInput.of(password),
-                                ),
-                        ),
-                    onSessionReconnectEmailChanged = { value ->
-                        observedEmail = value
-                        email = value
-                    },
-                    onSessionReconnectPasswordChanged = { value ->
-                        observedPassword = value
-                        password = value
-                    },
-                    onReconnectActiveServerProfile = { submitted = true },
-                )
-            }
+                            ),
+                        activeServerProfileId = DEVICE_PROFILE_ID,
+                        serverSessionReconnect =
+                            ServerSessionReconnectUiState(
+                                email = email,
+                                password = SecretInput.of(password),
+                            ),
+                    ),
+                onSessionReconnectEmailChanged = { value ->
+                    observedEmail = value
+                    email = value
+                },
+                onSessionReconnectPasswordChanged = { value ->
+                    observedPassword = value
+                    password = value
+                },
+                onReconnectActiveServerProfile = { submitted = true },
+            )
         }
 
         composeRule
@@ -123,63 +123,60 @@ class VoiceAssetAppTest {
     fun deviceSessionRevocationRequiresExplicitConfirmation() {
         var refreshed = false
         var confirmedId: String? = null
-        composeRule.waitForIdle()
-        composeRule.activity.runOnUiThread {
-            composeRule.activity.setContent {
-                var deviceSessions by
-                    remember {
-                        mutableStateOf(
-                            DeviceSessionsUiState(
-                                status = DeviceSessionsStatus.READY,
-                                items =
-                                    listOf(
-                                        DeviceSessionSummary(
-                                            id = CURRENT_DEVICE_SESSION_ID,
-                                            deviceName = "Pixel 9",
-                                            current = true,
-                                            lastSeenAt = "2026-07-18T05:30:00Z",
-                                            refreshExpiresAt = "2026-08-17T05:30:00Z",
-                                        ),
-                                        DeviceSessionSummary(
-                                            id = REMOTE_DEVICE_SESSION_ID,
-                                            deviceName = "Tablet",
-                                            current = false,
-                                            lastSeenAt = "2026-07-17T05:30:00Z",
-                                            refreshExpiresAt = "2026-08-16T05:30:00Z",
-                                        ),
-                                    ),
-                            ),
-                        )
-                    }
-                VoiceAssetApp(
-                    uiState =
-                        initialAppUiState().copy(
-                            serverStatus = ServerStatus.CONFIGURED,
-                            serverProfiles =
+        composeRule.setContent {
+            var deviceSessions by
+                remember {
+                    mutableStateOf(
+                        DeviceSessionsUiState(
+                            status = DeviceSessionsStatus.READY,
+                            items =
                                 listOf(
-                                    ServerProfileSummary(
-                                        id = DEVICE_PROFILE_ID,
-                                        name = "Primary server",
-                                        origin = "https://api.getio.net:10443",
-                                        isActive = true,
+                                    DeviceSessionSummary(
+                                        id = CURRENT_DEVICE_SESSION_ID,
+                                        deviceName = "Pixel 9",
+                                        current = true,
+                                        lastSeenAt = "2026-07-18T05:30:00Z",
+                                        refreshExpiresAt = "2026-08-17T05:30:00Z",
+                                    ),
+                                    DeviceSessionSummary(
+                                        id = REMOTE_DEVICE_SESSION_ID,
+                                        deviceName = "Tablet",
+                                        current = false,
+                                        lastSeenAt = "2026-07-17T05:30:00Z",
+                                        refreshExpiresAt = "2026-08-16T05:30:00Z",
                                     ),
                                 ),
-                            activeServerProfileId = DEVICE_PROFILE_ID,
-                            deviceSessions = deviceSessions,
                         ),
-                    onRefreshDeviceSessions = {
-                        refreshed = true
-                        deviceSessions = deviceSessions.copy(status = DeviceSessionsStatus.READY)
-                    },
-                    onRequestDeviceSessionRevocation = { id ->
-                        deviceSessions = deviceSessions.copy(pendingRevocationId = id)
-                    },
-                    onCancelDeviceSessionRevocation = {
-                        deviceSessions = deviceSessions.copy(pendingRevocationId = null)
-                    },
-                    onConfirmDeviceSessionRevocation = { confirmedId = deviceSessions.pendingRevocationId },
-                )
-            }
+                    )
+                }
+            VoiceAssetApp(
+                uiState =
+                    initialAppUiState().copy(
+                        serverStatus = ServerStatus.CONFIGURED,
+                        serverProfiles =
+                            listOf(
+                                ServerProfileSummary(
+                                    id = DEVICE_PROFILE_ID,
+                                    name = "Primary server",
+                                    origin = "https://api.getio.net:10443",
+                                    isActive = true,
+                                ),
+                            ),
+                        activeServerProfileId = DEVICE_PROFILE_ID,
+                        deviceSessions = deviceSessions,
+                    ),
+                onRefreshDeviceSessions = {
+                    refreshed = true
+                    deviceSessions = deviceSessions.copy(status = DeviceSessionsStatus.READY)
+                },
+                onRequestDeviceSessionRevocation = { id ->
+                    deviceSessions = deviceSessions.copy(pendingRevocationId = id)
+                },
+                onCancelDeviceSessionRevocation = {
+                    deviceSessions = deviceSessions.copy(pendingRevocationId = null)
+                },
+                onConfirmDeviceSessionRevocation = { confirmedId = deviceSessions.pendingRevocationId },
+            )
         }
 
         composeRule.waitForIdle()
@@ -224,167 +221,164 @@ class VoiceAssetAppTest {
         var providerUpdate: Pair<String, Boolean>? = null
         var providerHealthCheckId: String? = null
         var retriedAdministrationJobId: String? = null
-        composeRule.waitForIdle()
-        composeRule.activity.runOnUiThread {
-            composeRule.activity.setContent {
-                var assetTitle by remember { mutableStateOf("Latest server title") }
-                VoiceAssetApp(
-                    initialAppUiState().copy(
-                        serverStatus = ServerStatus.CONFIGURED,
-                        serverProfiles =
-                            listOf(
-                                ServerProfileSummary(
-                                    id = "82636d78-31f6-4349-899a-a87bb8bb6814",
-                                    name = "Primary server",
-                                    origin = "https://api.getio.net:10443",
-                                    isActive = true,
-                                ),
-                                ServerProfileSummary(
-                                    id = "93636d78-31f6-4349-899a-a87bb8bb6814",
-                                    name = "Archive server",
-                                    origin = "https://archive.example.test",
-                                ),
+        composeRule.setContent {
+            var assetTitle by remember { mutableStateOf("Latest server title") }
+            VoiceAssetApp(
+                initialAppUiState().copy(
+                    serverStatus = ServerStatus.CONFIGURED,
+                    serverProfiles =
+                        listOf(
+                            ServerProfileSummary(
+                                id = "82636d78-31f6-4349-899a-a87bb8bb6814",
+                                name = "Primary server",
+                                origin = "https://api.getio.net:10443",
+                                isActive = true,
                             ),
-                        activeServerProfileId = "82636d78-31f6-4349-899a-a87bb8bb6814",
-                        recordingStatus = RecordingUiStatus.SAVED,
-                        transcriptRevisionId = "70000000-0000-4000-8000-000000000007",
-                        transcriptLanguage = "en-US",
-                        transcriptText = "Cached offline transcript",
-                        localRecordingCount = 2,
-                        localRecordings =
-                            listOf(
-                                LocalRecordingSummary(
-                                    id = "50000000-0000-4000-8000-000000000005",
-                                    fileName = "field-note.m4a",
-                                    recordingStatus = RecordingUiStatus.SAVED,
-                                    durationMillis = 65_000,
-                                    syncStatus = SyncUiStatus.COMPLETE,
-                                    uploadedBytes = 1_024,
-                                    totalBytes = 1_024,
-                                    hasTranscript = true,
-                                    errorCode = null,
-                                    uploadPolicy = UploadPolicy.MANUAL,
-                                    transcriptionPolicy = TranscriptionPolicy.DISABLED,
-                                    hasUploadPolicyOverride = true,
-                                    hasTranscriptionPolicyOverride = true,
-                                    canPlay = true,
-                                    canExport = true,
-                                ),
-                                LocalRecordingSummary(
-                                    id = "51000000-0000-4000-8000-000000000005",
-                                    fileName = "failed-note.m4a",
-                                    recordingStatus = RecordingUiStatus.SAVED,
-                                    durationMillis = 30_000,
-                                    syncStatus = SyncUiStatus.FAILED,
-                                    uploadedBytes = 0,
-                                    totalBytes = 2_048,
-                                    hasTranscript = false,
-                                    errorCode = "retry_exhausted",
-                                ),
+                            ServerProfileSummary(
+                                id = "93636d78-31f6-4349-899a-a87bb8bb6814",
+                                name = "Archive server",
+                                origin = "https://archive.example.test",
                             ),
-                        syncedAssetCount = 1,
-                        syncedAssets =
-                            listOf(
-                                SyncedAssetSummary(
-                                    id = "60000000-0000-4000-8000-000000000006",
-                                    title = "Synced interview",
-                                    language = "en-US",
-                                    status = "ready",
-                                    durationMillis = 65_000,
-                                    version = 3,
-                                    isTrashed = false,
-                                ),
-                            ),
-                        assetMetadataEditor =
-                            AssetMetadataEditorUiState(
-                                assetId = "60000000-0000-4000-8000-000000000006",
-                                status = AssetMetadataEditorStatus.EDITING,
-                                title = assetTitle,
-                                language = "en-US",
-                                collectionId = "",
-                                version = 3,
-                                error = null,
-                            ),
-                        mobileAdministration =
-                            MobileAdministrationUiState(
-                                status = MobileAdministrationStatus.READY,
-                                systemStatus =
-                                    MobileSystemStatusSummary(
-                                        generatedAt = "2026-07-16T08:02:00Z",
-                                        activeUsers = 2,
-                                        assetCount = 4,
-                                        storageObjectCount = 3,
-                                        storageBytes = 2_048,
-                                        transcriptCount = 2,
-                                        revisionCount = 3,
-                                        jobCount = 1,
-                                        queuedJobCount = 0,
-                                        runningJobCount = 0,
-                                        retryWaitJobCount = 0,
-                                        failedJobCount = 1,
-                                        enabledAsrCount = 0,
-                                        enabledLlmCount = 1,
-                                    ),
-                                jobs =
-                                    listOf(
-                                        MobileAdministrationJobSummary(
-                                            id = "61000000-0000-4000-8000-000000000006",
-                                            kind = "mock_transcribe",
-                                            state = "failed",
-                                            attempts = 3,
-                                            maxAttempts = 3,
-                                            retryable = true,
-                                            lastErrorCode = "provider_unavailable",
-                                            updatedAt = "2026-07-16T08:01:00Z",
-                                        ),
-                                    ),
-                                providers =
-                                    listOf(
-                                        MobileProviderProfileSummary(
-                                            id = "62000000-0000-4000-8000-000000000006",
-                                            family = ProviderProfileFamily.ASR,
-                                            providerId = "mock_asr",
-                                            displayName = "Mock ASR",
-                                            state = ProviderProfileState.DISABLED,
-                                            priority = 100,
-                                            version = 1,
-                                            secretConfigured = true,
-                                            healthStatus = ProviderHealthStatus.HEALTHY,
-                                            healthCheckedAt = "2026-07-16T08:03:00Z",
-                                        ),
-                                    ),
-                            ),
-                    ),
-                    playbackState =
-                        RecordingPlaybackUiState(
-                            recordingSessionId = "52000000-0000-4000-8000-000000000005",
-                            status = RecordingPlaybackStatus.PLAYING,
                         ),
-                    onServerSelected = { profileId -> selectedProfileId = profileId },
-                    onOfflineLibrarySearchQueryChanged = { value -> searchQuery = value },
-                    onRefreshSyncedAssets = { refreshedAssets = true },
-                    onRefreshMobileAdministration = { refreshedAdministration = true },
-                    onSetProviderProfileEnabled = { profileId, enabled ->
-                        providerUpdate = profileId to enabled
-                    },
-                    onCheckProviderProfileHealth = { profileId ->
-                        providerHealthCheckId = profileId
-                    },
-                    onRetryAdministrationJob = { jobId ->
-                        retriedAdministrationJobId = jobId
-                    },
-                    onEditAssetMetadata = { assetId -> editedAssetId = assetId },
-                    onAssetMetadataTitleChanged = { value ->
-                        metadataTitle = value
-                        assetTitle = value
-                    },
-                    onSaveAssetMetadata = { metadataSaved = true },
-                    onRetryRecordingSync = { recordingId -> retriedRecordingId = recordingId },
-                    onPlayRecording = { recordingId -> playedRecordingId = recordingId },
-                    onStopRecordingPlayback = { stoppedHiddenPlayback = true },
-                    onExportRecording = { recordingId -> exportedRecordingId = recordingId },
-                )
-            }
+                    activeServerProfileId = "82636d78-31f6-4349-899a-a87bb8bb6814",
+                    recordingStatus = RecordingUiStatus.SAVED,
+                    transcriptRevisionId = "70000000-0000-4000-8000-000000000007",
+                    transcriptLanguage = "en-US",
+                    transcriptText = "Cached offline transcript",
+                    localRecordingCount = 2,
+                    localRecordings =
+                        listOf(
+                            LocalRecordingSummary(
+                                id = "50000000-0000-4000-8000-000000000005",
+                                fileName = "field-note.m4a",
+                                recordingStatus = RecordingUiStatus.SAVED,
+                                durationMillis = 65_000,
+                                syncStatus = SyncUiStatus.COMPLETE,
+                                uploadedBytes = 1_024,
+                                totalBytes = 1_024,
+                                hasTranscript = true,
+                                errorCode = null,
+                                uploadPolicy = UploadPolicy.MANUAL,
+                                transcriptionPolicy = TranscriptionPolicy.DISABLED,
+                                hasUploadPolicyOverride = true,
+                                hasTranscriptionPolicyOverride = true,
+                                canPlay = true,
+                                canExport = true,
+                            ),
+                            LocalRecordingSummary(
+                                id = "51000000-0000-4000-8000-000000000005",
+                                fileName = "failed-note.m4a",
+                                recordingStatus = RecordingUiStatus.SAVED,
+                                durationMillis = 30_000,
+                                syncStatus = SyncUiStatus.FAILED,
+                                uploadedBytes = 0,
+                                totalBytes = 2_048,
+                                hasTranscript = false,
+                                errorCode = "retry_exhausted",
+                            ),
+                        ),
+                    syncedAssetCount = 1,
+                    syncedAssets =
+                        listOf(
+                            SyncedAssetSummary(
+                                id = "60000000-0000-4000-8000-000000000006",
+                                title = "Synced interview",
+                                language = "en-US",
+                                status = "ready",
+                                durationMillis = 65_000,
+                                version = 3,
+                                isTrashed = false,
+                            ),
+                        ),
+                    assetMetadataEditor =
+                        AssetMetadataEditorUiState(
+                            assetId = "60000000-0000-4000-8000-000000000006",
+                            status = AssetMetadataEditorStatus.EDITING,
+                            title = assetTitle,
+                            language = "en-US",
+                            collectionId = "",
+                            version = 3,
+                            error = null,
+                        ),
+                    mobileAdministration =
+                        MobileAdministrationUiState(
+                            status = MobileAdministrationStatus.READY,
+                            systemStatus =
+                                MobileSystemStatusSummary(
+                                    generatedAt = "2026-07-16T08:02:00Z",
+                                    activeUsers = 2,
+                                    assetCount = 4,
+                                    storageObjectCount = 3,
+                                    storageBytes = 2_048,
+                                    transcriptCount = 2,
+                                    revisionCount = 3,
+                                    jobCount = 1,
+                                    queuedJobCount = 0,
+                                    runningJobCount = 0,
+                                    retryWaitJobCount = 0,
+                                    failedJobCount = 1,
+                                    enabledAsrCount = 0,
+                                    enabledLlmCount = 1,
+                                ),
+                            jobs =
+                                listOf(
+                                    MobileAdministrationJobSummary(
+                                        id = "61000000-0000-4000-8000-000000000006",
+                                        kind = "mock_transcribe",
+                                        state = "failed",
+                                        attempts = 3,
+                                        maxAttempts = 3,
+                                        retryable = true,
+                                        lastErrorCode = "provider_unavailable",
+                                        updatedAt = "2026-07-16T08:01:00Z",
+                                    ),
+                                ),
+                            providers =
+                                listOf(
+                                    MobileProviderProfileSummary(
+                                        id = "62000000-0000-4000-8000-000000000006",
+                                        family = ProviderProfileFamily.ASR,
+                                        providerId = "mock_asr",
+                                        displayName = "Mock ASR",
+                                        state = ProviderProfileState.DISABLED,
+                                        priority = 100,
+                                        version = 1,
+                                        secretConfigured = true,
+                                        healthStatus = ProviderHealthStatus.HEALTHY,
+                                        healthCheckedAt = "2026-07-16T08:03:00Z",
+                                    ),
+                                ),
+                        ),
+                ),
+                playbackState =
+                    RecordingPlaybackUiState(
+                        recordingSessionId = "52000000-0000-4000-8000-000000000005",
+                        status = RecordingPlaybackStatus.PLAYING,
+                    ),
+                onServerSelected = { profileId -> selectedProfileId = profileId },
+                onOfflineLibrarySearchQueryChanged = { value -> searchQuery = value },
+                onRefreshSyncedAssets = { refreshedAssets = true },
+                onRefreshMobileAdministration = { refreshedAdministration = true },
+                onSetProviderProfileEnabled = { profileId, enabled ->
+                    providerUpdate = profileId to enabled
+                },
+                onCheckProviderProfileHealth = { profileId ->
+                    providerHealthCheckId = profileId
+                },
+                onRetryAdministrationJob = { jobId ->
+                    retriedAdministrationJobId = jobId
+                },
+                onEditAssetMetadata = { assetId -> editedAssetId = assetId },
+                onAssetMetadataTitleChanged = { value ->
+                    metadataTitle = value
+                    assetTitle = value
+                },
+                onSaveAssetMetadata = { metadataSaved = true },
+                onRetryRecordingSync = { recordingId -> retriedRecordingId = recordingId },
+                onPlayRecording = { recordingId -> playedRecordingId = recordingId },
+                onStopRecordingPlayback = { stoppedHiddenPlayback = true },
+                onExportRecording = { recordingId -> exportedRecordingId = recordingId },
+            )
         }
 
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
