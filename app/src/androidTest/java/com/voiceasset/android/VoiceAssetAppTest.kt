@@ -446,7 +446,7 @@ class VoiceAssetAppTest {
         repeat(4) {
             composeRule.onRoot().performTouchInput { swipeUp() }
         }
-        composeRule.onNodeWithText("field-note.m4a").assertIsDisplayed()
+        composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
         composeRule.onNodeWithText("Sync: Complete").assertIsDisplayed()
         composeRule.onNodeWithText("Transcript available offline").assertIsDisplayed()
         composeRule
