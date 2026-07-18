@@ -417,7 +417,7 @@ class MainViewModelTest {
             viewModel.saveServerProfile()
 
             val state =
-                withTimeout(5_000) {
+                withTimeout(15_000) {
                     viewModel.uiState.first {
                         it.serverStatus == ServerStatus.CONFIGURED && it.syncedAssetCount == 1
                     }

@@ -59,6 +59,7 @@ class VoiceAssetAppTest {
         var observedEmail = ""
         var observedPassword = ""
         var submitted = false
+        composeRule.waitForIdle()
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
                 var email by remember { mutableStateOf("") }
@@ -122,6 +123,7 @@ class VoiceAssetAppTest {
     fun deviceSessionRevocationRequiresExplicitConfirmation() {
         var refreshed = false
         var confirmedId: String? = null
+        composeRule.waitForIdle()
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
                 var deviceSessions by
@@ -222,6 +224,7 @@ class VoiceAssetAppTest {
         var providerUpdate: Pair<String, Boolean>? = null
         var providerHealthCheckId: String? = null
         var retriedAdministrationJobId: String? = null
+        composeRule.waitForIdle()
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
                 var assetTitle by remember { mutableStateOf("Latest server title") }

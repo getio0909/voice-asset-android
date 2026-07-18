@@ -3,8 +3,8 @@ package com.voiceasset.android.export
 import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.voiceasset.android.VoiceAssetApplication
 import com.voiceasset.core.model.RecordingSessionId
 import kotlinx.coroutines.runBlocking
@@ -23,7 +23,11 @@ class RecordingExporterTest {
     @Test
     fun verifiedRecordingCreatesReadOnlyShareIntentAndCorruptionBlocksExport() =
         runBlocking {
-            val application = ApplicationProvider.getApplicationContext<VoiceAssetApplication>()
+            val application =
+                InstrumentationRegistry
+                    .getInstrumentation()
+                    .targetContext
+                    .applicationContext as VoiceAssetApplication
             val recordingId = RecordingSessionId.parse(UUID.randomUUID().toString())
             val bytes = "verified recording export".encodeToByteArray()
             val fileName = "${recordingId.value}.m4a"
