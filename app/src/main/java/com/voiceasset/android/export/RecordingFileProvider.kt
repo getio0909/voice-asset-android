@@ -66,7 +66,7 @@ class RecordingFileProvider : ContentProvider() {
     ): Int = throw UnsupportedOperationException("recordings are read-only")
 
     private fun resolve(uri: Uri): ResolvedRecording? {
-        val providerContext = context ?: return null
+        val providerContext = context?.applicationContext ?: return null
         if (uri.scheme != "content" || uri.authority != authority(providerContext.packageName)) {
             return null
         }

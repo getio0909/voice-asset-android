@@ -124,7 +124,31 @@ class VoiceAssetAppTest {
         var confirmedId: String? = null
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
-                var pendingId by remember { mutableStateOf<String?>(null) }
+                var deviceSessions by
+                    remember {
+                        mutableStateOf(
+                            DeviceSessionsUiState(
+                                status = DeviceSessionsStatus.READY,
+                                items =
+                                    listOf(
+                                        DeviceSessionSummary(
+                                            id = CURRENT_DEVICE_SESSION_ID,
+                                            deviceName = "Pixel 9",
+                                            current = true,
+                                            lastSeenAt = "2026-07-18T05:30:00Z",
+                                            refreshExpiresAt = "2026-08-17T05:30:00Z",
+                                        ),
+                                        DeviceSessionSummary(
+                                            id = REMOTE_DEVICE_SESSION_ID,
+                                            deviceName = "Tablet",
+                                            current = false,
+                                            lastSeenAt = "2026-07-17T05:30:00Z",
+                                            refreshExpiresAt = "2026-08-16T05:30:00Z",
+                                        ),
+                                    ),
+                            ),
+                        )
+                    }
                 VoiceAssetApp(
                     uiState =
                         initialAppUiState().copy(
@@ -139,33 +163,19 @@ class VoiceAssetAppTest {
                                     ),
                                 ),
                             activeServerProfileId = DEVICE_PROFILE_ID,
-                            deviceSessions =
-                                DeviceSessionsUiState(
-                                    status = DeviceSessionsStatus.READY,
-                                    items =
-                                        listOf(
-                                            DeviceSessionSummary(
-                                                id = CURRENT_DEVICE_SESSION_ID,
-                                                deviceName = "Pixel 9",
-                                                current = true,
-                                                lastSeenAt = "2026-07-18T05:30:00Z",
-                                                refreshExpiresAt = "2026-08-17T05:30:00Z",
-                                            ),
-                                            DeviceSessionSummary(
-                                                id = REMOTE_DEVICE_SESSION_ID,
-                                                deviceName = "Tablet",
-                                                current = false,
-                                                lastSeenAt = "2026-07-17T05:30:00Z",
-                                                refreshExpiresAt = "2026-08-16T05:30:00Z",
-                                            ),
-                                        ),
-                                    pendingRevocationId = pendingId,
-                                ),
+                            deviceSessions = deviceSessions,
                         ),
-                    onRefreshDeviceSessions = { refreshed = true },
-                    onRequestDeviceSessionRevocation = { id -> pendingId = id },
-                    onCancelDeviceSessionRevocation = { pendingId = null },
-                    onConfirmDeviceSessionRevocation = { confirmedId = pendingId },
+                    onRefreshDeviceSessions = {
+                        refreshed = true
+                        deviceSessions = deviceSessions.copy(status = DeviceSessionsStatus.READY)
+                    },
+                    onRequestDeviceSessionRevocation = { id ->
+                        deviceSessions = deviceSessions.copy(pendingRevocationId = id)
+                    },
+                    onCancelDeviceSessionRevocation = {
+                        deviceSessions = deviceSessions.copy(pendingRevocationId = null)
+                    },
+                    onConfirmDeviceSessionRevocation = { confirmedId = deviceSessions.pendingRevocationId },
                 )
             }
         }
@@ -176,7 +186,7 @@ class VoiceAssetAppTest {
             .performScrollTo()
             .performClick()
         composeRule
-            .onNodeWithText("Revoke device")
+            .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
         composeRule.onNodeWithText("Revoke Tablet?").assertIsDisplayed()
@@ -187,7 +197,7 @@ class VoiceAssetAppTest {
 
         composeRule.onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
         composeRule
-            .onNodeWithText("Revoke device")
+            .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
         composeRule.onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
@@ -214,6 +224,7 @@ class VoiceAssetAppTest {
         var retriedAdministrationJobId: String? = null
         composeRule.activity.runOnUiThread {
             composeRule.activity.setContent {
+                var assetTitle by remember { mutableStateOf("Latest server title") }
                 VoiceAssetApp(
                     initialAppUiState().copy(
                         serverStatus = ServerStatus.CONFIGURED,
@@ -285,7 +296,7 @@ class VoiceAssetAppTest {
                             AssetMetadataEditorUiState(
                                 assetId = "60000000-0000-4000-8000-000000000006",
                                 status = AssetMetadataEditorStatus.EDITING,
-                                title = "Latest server title",
+                                title = assetTitle,
                                 language = "en-US",
                                 collectionId = "",
                                 version = 3,
@@ -360,7 +371,10 @@ class VoiceAssetAppTest {
                         retriedAdministrationJobId = jobId
                     },
                     onEditAssetMetadata = { assetId -> editedAssetId = assetId },
-                    onAssetMetadataTitleChanged = { value -> metadataTitle = value },
+                    onAssetMetadataTitleChanged = { value ->
+                        metadataTitle = value
+                        assetTitle = value
+                    },
                     onSaveAssetMetadata = { metadataSaved = true },
                     onRetryRecordingSync = { recordingId -> retriedRecordingId = recordingId },
                     onPlayRecording = { recordingId -> playedRecordingId = recordingId },
