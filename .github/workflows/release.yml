@@ -42,7 +42,10 @@ jobs:
         run: |
           version=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)
           test -n "$version"
-          test "$GITHUB_REF_NAME" = "v$version"
+          tag_version=${GITHUB_REF_NAME#v}
+          tag_version=${tag_version%%-*}
+          tag_version=${tag_version%%+*}
+          test "$tag_version" = "$version"
       - name: Test, lint, and build signed release APK and AAB
         env:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/voiceasset-upload.p12
