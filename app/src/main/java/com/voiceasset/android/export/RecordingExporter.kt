@@ -6,11 +6,14 @@ import android.content.Intent
 import com.voiceasset.android.data.RecordingStore
 import com.voiceasset.core.model.RecordingSessionId
 
-class RecordingExporter(
+internal class RecordingExporter(
     private val context: Context,
-    recordings: RecordingStore,
+    private val verifier: RecordingFileResolver,
 ) {
-    private val verifier = RecordingFileVerifier(context, recordings)
+    constructor(
+        context: Context,
+        recordings: RecordingStore,
+    ) : this(context, RecordingFileVerifier(context, recordings))
 
     suspend fun createShareIntent(recordingSessionId: RecordingSessionId): Intent? =
         verifier.resolve(recordingSessionId)?.let { recording ->

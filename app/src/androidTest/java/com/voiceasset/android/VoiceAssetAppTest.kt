@@ -176,7 +176,7 @@ class VoiceAssetAppTest {
             .performScrollTo()
             .performClick()
         composeRule
-            .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
+            .onNodeWithText("Revoke device")
             .performScrollTo()
             .performClick()
         composeRule.onNodeWithText("Revoke Tablet?").assertIsDisplayed()
@@ -187,7 +187,7 @@ class VoiceAssetAppTest {
 
         composeRule.onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
         composeRule
-            .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
+            .onNodeWithText("Revoke device")
             .performScrollTo()
             .performClick()
         composeRule.onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
@@ -408,7 +408,7 @@ class VoiceAssetAppTest {
         composeRule.runOnIdle {
             assertEquals("61000000-0000-4000-8000-000000000006", retriedAdministrationJobId)
         }
-        composeRule.onNodeWithText("Synced interview").assertIsDisplayed()
+        composeRule.onNodeWithText("Synced interview").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(REFRESH_SYNCED_ASSETS_TEST_TAG).performScrollTo().performClick()
         composeRule.runOnIdle {
             assertEquals(true, refreshedAssets)

@@ -6,15 +6,7 @@ import android.provider.OpenableColumns
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.VoiceAssetApplication
-import com.voiceasset.android.data.RecordingStore
-import com.voiceasset.android.data.StoredRecording
-import com.voiceasset.android.data.StoredRecordingStatus
-import com.voiceasset.core.model.LocalRecording
-import com.voiceasset.core.model.RecordingSession
 import com.voiceasset.core.model.RecordingSessionId
-import com.voiceasset.core.model.RecordingState
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -24,7 +16,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.security.MessageDigest
 import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
@@ -38,44 +29,18 @@ class RecordingExporterTest {
             val fileName = "${recordingId.value}.m4a"
             val directory = File(application.filesDir, RecordingFileProvider.RECORDING_DIRECTORY).apply { mkdirs() }
             val file = File(directory, fileName).apply { writeBytes(bytes) }
-            val session =
-                RecordingSession(
-                    id = recordingId,
-                    fileName = fileName,
-                    startedAtEpochMillis = 1,
-                )
-            val recording =
-                LocalRecording(
-                    sessionId = recordingId,
-                    fileName = fileName,
-                    durationMillis = 1_000,
-                    sizeBytes = bytes.size.toLong(),
-                    sha256 = bytes.sha256(),
-                    stoppedAtEpochMillis = 4,
-                )
-            val store =
-                object : RecordingStore {
-                    private val stored = StoredRecording(session, StoredRecordingStatus.SAVED, recording, null, 5)
-
-                    override fun observeAll(): Flow<List<StoredRecording>> = flowOf(listOf(stored))
-
-                    override suspend fun find(id: RecordingSessionId): StoredRecording? = stored.takeIf { it.session.id == id }
-
-                    override suspend fun loadRecoverable(): List<StoredRecording> = emptyList()
-
-                    override suspend fun recoverSaved(
-                        recording: LocalRecording,
-                        updatedAtEpochMillis: Long,
-                    ) = error("not used")
-
-                    override suspend fun persist(
-                        state: RecordingState,
-                        updatedAtEpochMillis: Long,
-                    ) = error("not used")
-                }
-
             try {
-                val exporter = RecordingExporter(application, store)
+                val exporter =
+                    RecordingExporter(
+                        application,
+                        RecordingFileResolver { requestedId ->
+                            if (requestedId != recordingId || !file.isFile || !file.readBytes().contentEquals(bytes)) {
+                                null
+                            } else {
+                                VerifiedRecordingFile(file, fileName, "audio/mp4")
+                            }
+                        },
+                    )
                 val shareIntent = requireNotNull(exporter.createShareIntent(recordingId))
                 assertEquals(Intent.ACTION_SEND, shareIntent.action)
                 assertEquals("audio/mp4", shareIntent.type)
@@ -114,9 +79,3 @@ class RecordingExporterTest {
             }
         }
 }
-
-private fun ByteArray.sha256(): String =
-    MessageDigest
-        .getInstance("SHA-256")
-        .digest(this)
-        .joinToString("") { byte -> "%02x".format(byte) }
