@@ -392,7 +392,7 @@ class VoiceAssetAppTest {
         }
 
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextInput("field")
+        composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("field")
         composeRule.runOnIdle {
             assertEquals("field", searchQuery)
         }
