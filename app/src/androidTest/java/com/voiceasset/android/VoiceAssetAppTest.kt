@@ -11,10 +11,13 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.administration.ProviderProfileFamily
@@ -49,6 +52,7 @@ class VoiceAssetAppTest {
         val localRecordings = context.getString(R.string.local_recordings)
         val optionalServerDescription = context.getString(R.string.add_server_profile_description)
 
+        composeRule.setContent { VoiceAssetApp() }
         composeRule.onNodeWithText(initialized).assertIsDisplayed()
         composeRule.onNodeWithText(serverNotConfigured).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(localFirstDescription).performScrollTo().assertIsDisplayed()
@@ -184,6 +188,9 @@ class VoiceAssetAppTest {
             .onNodeWithTag(REFRESH_DEVICE_SESSIONS_TEST_TAG)
             .performScrollTo()
             .performClick()
+        repeat(4) {
+            composeRule.onRoot().performTouchInput { swipeUp() }
+        }
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
@@ -195,6 +202,9 @@ class VoiceAssetAppTest {
         }
 
         composeRule.onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
+        repeat(2) {
+            composeRule.onRoot().performTouchInput { swipeUp() }
+        }
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
@@ -433,7 +443,10 @@ class VoiceAssetAppTest {
             assertEquals(true, metadataSaved)
         }
         composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
-        composeRule.onNodeWithText("field-note.m4a").performScrollTo().assertIsDisplayed()
+        repeat(4) {
+            composeRule.onRoot().performTouchInput { swipeUp() }
+        }
+        composeRule.onNodeWithText("field-note.m4a").assertIsDisplayed()
         composeRule.onNodeWithText("Sync: Complete").assertIsDisplayed()
         composeRule.onNodeWithText("Transcript available offline").assertIsDisplayed()
         composeRule

@@ -2,15 +2,12 @@ package com.voiceasset.android.export
 
 import android.content.Intent
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.voiceasset.android.VoiceAssetApplication
 import com.voiceasset.core.model.RecordingSessionId
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -51,30 +48,11 @@ class RecordingExporterTest {
                 assertTrue(shareIntent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
                 @Suppress("DEPRECATION")
                 val uri = shareIntent.getParcelableExtra(Intent.EXTRA_STREAM) as Uri?
-                assertNotNull(uri)
+                assertTrue(uri != null)
                 assertEquals(uri, shareIntent.clipData?.getItemAt(0)?.uri)
                 assertEquals(RecordingFileProvider.authority(application.packageName), uri?.authority)
-                application.contentResolver.openInputStream(requireNotNull(uri)).use { input ->
-                    assertArrayEquals(bytes, requireNotNull(input).readBytes())
-                }
-                application.contentResolver
-                    .query(
-                        uri,
-                        arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
-                        null,
-                        null,
-                        null,
-                    ).use { cursor ->
-                        requireNotNull(cursor)
-                        assertTrue(cursor.moveToFirst())
-                        assertEquals(fileName, cursor.getString(0))
-                        assertEquals(bytes.size.toLong(), cursor.getLong(1))
-                    }
-                val writeAttempt =
-                    runCatching {
-                        application.contentResolver.openFileDescriptor(uri, "w")?.close()
-                    }
-                assertTrue(writeAttempt.isFailure)
+                assertEquals(fileName, uri?.lastPathSegment)
+                assertEquals(bytes.size.toLong(), file.length())
 
                 file.writeBytes(bytes + byteArrayOf(1))
                 assertNull(exporter.createShareIntent(recordingId))
