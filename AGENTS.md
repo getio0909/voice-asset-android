@@ -9,10 +9,13 @@ foundation and keep Server access behind a typed public API client.
 
 ## Commands
 
-- `gradlew.bat testDebugUnitTest`: run local unit tests on Windows.
+- `gradlew.bat test`: run app and core-module unit tests on Windows.
 - `gradlew.bat lintDebug`: run Android lint.
 - `gradlew.bat assembleDebug`: build the debug APK.
-- `./gradlew testDebugUnitTest lintDebug assembleDebug`: run all checks on Unix.
+- `gradlew.bat assembleRelease bundleRelease`: build a signed release APK/AAB
+  when the four `ANDROID_*` signing variables are set; package and verify them
+  with the scripts under `scripts/`.
+- `./gradlew test lintDebug assembleDebug`: run all checks on Unix.
 
 Use four-space indentation, `PascalCase` types and composables, and `camelCase`
 members. Model recording, upload, and synchronization as explicit states; test
