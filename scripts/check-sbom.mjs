@@ -21,9 +21,24 @@ for (const required of ['androidx.activity:activity-compose', 'androidx.compose.
 }
 
 const allowedLicense = /(apache|\bmit\b|\bbsd\b|eclipse public|\bepl\b|unicode|icu|public domain)/i
+const rootGroup = bom.metadata?.component?.group
+const isLocalProjectComponent = (component) => {
+  const group = component.group
+  const purl = component.purl
+  return (
+    typeof rootGroup === 'string' &&
+    typeof group === 'string' &&
+    (group === rootGroup || group.startsWith(`${rootGroup}.`)) &&
+    typeof purl === 'string' &&
+    /[?&]project_path=(?:%3A|:)/i.test(purl)
+  )
+}
 const unlicensed = []
 const disallowed = []
 for (const component of components) {
+  if (isLocalProjectComponent(component)) {
+    continue
+  }
   const licenses = Array.isArray(component.licenses) ? component.licenses : []
   const labels = licenses
     .flatMap((choice) => [choice?.license?.id, choice?.license?.name, choice?.expression])

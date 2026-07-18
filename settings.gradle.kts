@@ -16,3 +16,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "VoiceAssetAndroid"
 include(":app")
+include(":core:api")
+include(":core:model")

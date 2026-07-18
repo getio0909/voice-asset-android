@@ -6,8 +6,13 @@ Thank you for improving VoiceAsset Android.
 
 1. Use JDK 21 and install Android SDK Platform 37.
 2. Keep changes focused and add tests for behavior changes.
-3. Run `./gradlew testDebugUnitTest lintDebug assembleDebug` before opening a pull request.
+3. Run `./gradlew test lintDebug assembleDebug` before opening a pull request.
 4. Run `./gradlew connectedDebugAndroidTest` when a device or emulator is available.
+
+Before a release candidate, also run `./gradlew ktlintCheck lintRelease
+assembleRelease bundleRelease :app:cyclonedxDirectBom`, then execute both
+release scripts documented in `README.md`. Release keys and passwords remain
+outside Gradle, GitHub Actions, and the repository.
 
 Use four-space indentation for Kotlin, `PascalCase` for types and composables, and `camelCase` for functions and properties. Format code with Android Studio's Kotlin formatter and resolve Android lint findings instead of suppressing them without an explanation.
 
