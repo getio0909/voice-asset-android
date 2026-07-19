@@ -541,8 +541,11 @@ class VoiceAssetAppTest {
             assertEquals(true, metadataSaved)
         }
         composeRule
-            .onNodeWithTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
+            .onNodeWithTag(SERVER_PROFILE_CARD_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
             .performScrollTo()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
             .assertIsDisplayed()
             .performClick()
         composeRule.runOnIdle {
