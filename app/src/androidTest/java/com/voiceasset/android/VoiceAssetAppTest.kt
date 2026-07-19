@@ -233,9 +233,11 @@ class VoiceAssetAppTest {
         var retriedAdministrationJobId: String? = null
         composeRule.setContent {
             var assetTitle by remember { mutableStateOf("Latest server title") }
+            var composedSearchQuery by remember { mutableStateOf("") }
             VoiceAssetApp(
                 initialAppUiState().copy(
                     serverStatus = ServerStatus.CONFIGURED,
+                    offlineLibrarySearchQuery = composedSearchQuery,
                     serverProfiles =
                         listOf(
                             ServerProfileSummary(
@@ -366,7 +368,10 @@ class VoiceAssetAppTest {
                         status = RecordingPlaybackStatus.PLAYING,
                     ),
                 onServerSelected = { profileId -> selectedProfileId = profileId },
-                onOfflineLibrarySearchQueryChanged = { value -> searchQuery = value },
+                onOfflineLibrarySearchQueryChanged = { value ->
+                    searchQuery = value
+                    composedSearchQuery = value
+                },
                 onRefreshSyncedAssets = { refreshedAssets = true },
                 onRefreshMobileAdministration = { refreshedAdministration = true },
                 onSetProviderProfileEnabled = { profileId, enabled ->
