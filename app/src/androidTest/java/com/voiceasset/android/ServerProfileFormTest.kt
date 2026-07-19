@@ -79,6 +79,10 @@ class ServerProfileFormTest {
         }
 
         composeRule
+            .onNodeWithText(context.getString(R.string.show_recording_options))
+            .performScrollTo()
+            .performClick()
+        composeRule
             .onNodeWithTag("recording_upload_policy_override")
             .performScrollTo()
             .performClick()

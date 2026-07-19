@@ -1899,6 +1899,7 @@ private fun RecordingCard(
                             modifier =
                                 Modifier
                                     .size(96.dp)
+                                    .testTag(RECORD_BUTTON_TEST_TAG)
                                     .semantics { contentDescription = unavailableButtonDescription },
                             shape = CircleShape,
                             onClick = onStart,
@@ -1914,6 +1915,7 @@ private fun RecordingCard(
                             modifier =
                                 Modifier
                                     .size(96.dp)
+                                    .testTag(RECORD_BUTTON_TEST_TAG)
                                     .semantics { contentDescription = startButtonDescription },
                             shape = CircleShape,
                             onClick = onStart,
