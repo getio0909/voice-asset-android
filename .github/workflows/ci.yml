@@ -142,9 +142,9 @@ jobs:
           # intentionally does not rely on a committed executable bit.
           script: |
             bash ./gradlew connectedDebugAndroidTest --stacktrace
-            adb shell am instrument -w -e class com.voiceasset.android.recording.ProcessDeathAcceptanceTest -e process_death_phase seed com.voiceasset.android.test/com.voiceasset.android.VoiceAssetTestRunner
+            adb shell am instrument -w -e class com.voiceasset.android.recording.ProcessDeathAcceptanceTest -e process_death_phase seed com.voiceasset.android.test/com.voiceasset.android.VoiceAssetTestRunner 2>&1 | tee /tmp/process-death-seed.log && grep -q 'INSTRUMENTATION_CODE: 0' /tmp/process-death-seed.log
             adb shell am force-stop com.voiceasset.android
-            adb shell am instrument -w -e class com.voiceasset.android.recording.ProcessDeathAcceptanceTest -e process_death_phase verify com.voiceasset.android.test/com.voiceasset.android.VoiceAssetTestRunner
+            adb shell am instrument -w -e class com.voiceasset.android.recording.ProcessDeathAcceptanceTest -e process_death_phase verify com.voiceasset.android.test/com.voiceasset.android.VoiceAssetTestRunner 2>&1 | tee /tmp/process-death-verify.log && grep -q 'INSTRUMENTATION_CODE: 0' /tmp/process-death-verify.log
 
   dependency-review:
     if: github.event_name == 'pull_request'
