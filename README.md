@@ -120,6 +120,29 @@ no default account password. Report the failing step, visible error text, device
 model, Android version, and approximate UTC time; never include the password,
 pairing URI, session identifiers, or tokens in screenshots or logs.
 
+### Acceptance evidence record
+
+Copy this small record into the release evidence notes after testing. Keep it
+credential-free and use UTC timestamps:
+
+```text
+Build/artifact:
+Device model and Android version:
+Test date (UTC):
+Offline launch / no-login recorder:
+Local record >=10 s / stop-save:
+Local playback / export:
+Pairing and profile display:
+Offline stop, reconnect, upload, transcript:
+Process-stop recovery (if exercised):
+This-device revoke / same-profile reconnect:
+Result and sanitized error text:
+```
+
+Mark each line `PASS` or `FAIL`, and attach only redacted screenshots or logs.
+Do not paste account passwords, pairing URIs, tokens, session IDs, or raw
+server responses into the evidence file.
+
 Run `./gradlew ktlintCheck` to verify Kotlin formatting. Generate the resolved
 dependency SBOM with `./gradlew :app:cyclonedxDirectBom`; CI also verifies that
 its runtime components have recognized licenses.
