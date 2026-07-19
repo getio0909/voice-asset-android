@@ -11,16 +11,14 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.administration.ProviderProfileFamily
+import com.voiceasset.android.playback.RecordingPlaybackDecoderMode
 import com.voiceasset.android.playback.RecordingPlaybackStatus
 import com.voiceasset.android.playback.RecordingPlaybackUiState
 import com.voiceasset.core.api.ProviderHealthStatus
@@ -53,6 +51,7 @@ class VoiceAssetAppTest {
         val optionalServerDescription = context.getString(R.string.add_server_profile_description)
 
         composeRule.setContent { VoiceAssetApp() }
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithText(initialized).assertIsDisplayed()
         composeRule.onNodeWithText(serverNotConfigured).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(localFirstDescription).performScrollTo().assertIsDisplayed()
@@ -69,13 +68,50 @@ class VoiceAssetAppTest {
             VoiceAssetApp(onLanguageSelected = { selectedLanguage = it })
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.onNodeWithTag(LANGUAGE_SELECTOR_TEST_TAG).performClick()
         composeRule.onNodeWithTag(LANGUAGE_CHINESE_TEST_TAG).performClick()
         composeRule.runOnIdle {
             assertEquals(AppLanguage.SIMPLIFIED_CHINESE, selectedLanguage)
         }
+        composeRule.onNodeWithTag(RECORDER_BACK_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithTag(RECORD_BUTTON_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(RECORDER_WAVEFORM_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun recorderShellOffersSearchFiltersSettingsAndOneRecordAction() {
+        composeRule.setContent { VoiceAssetApp() }
+
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.settings_tab)).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORDER_BACK_TEST_TAG).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.recordings_tab)).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORDER_SEARCH_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag("recording-filter").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.recording_filter_all)).assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsExposePlaybackDecoderChoices() {
+        var selectedDecoder: RecordingPlaybackDecoderMode? = null
+
+        composeRule.setContent {
+            VoiceAssetApp(
+                onPlaybackDecoderModeChanged = { selectedDecoder = it },
+            )
+        }
+
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
+        composeRule
+            .onNodeWithTag("playback-decoder-hardware_preferred")
+            .performScrollTo()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals(RecordingPlaybackDecoderMode.HARDWARE_PREFERRED, selectedDecoder)
+        }
     }
 
     @Test
@@ -118,6 +154,7 @@ class VoiceAssetAppTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule
             .onNodeWithTag(SESSION_RECONNECT_EMAIL_TEST_TAG)
             .performScrollTo()
@@ -200,33 +237,37 @@ class VoiceAssetAppTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
         composeRule
             .onNodeWithTag(REFRESH_DEVICE_SESSIONS_TEST_TAG)
             .performScrollTo()
             .performClick()
-        repeat(4) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
-        composeRule.onNodeWithText("Revoke Tablet?").assertIsDisplayed()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Revoke Tablet?").performScrollTo().assertIsDisplayed()
         composeRule.runOnIdle {
             assertEquals(true, refreshed)
             assertEquals(null, confirmedId)
         }
 
-        composeRule.onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
-        repeat(2) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
+        composeRule
+            .onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG)
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
-        composeRule.onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule
+            .onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG)
+            .performScrollTo()
+            .performClick()
         composeRule.runOnIdle {
             assertEquals(REMOTE_DEVICE_SESSION_ID, confirmedId)
         }
@@ -413,7 +454,6 @@ class VoiceAssetAppTest {
             )
         }
 
-        composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("field")
         composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "field" }
         composeRule.runOnIdle {
@@ -422,11 +462,57 @@ class VoiceAssetAppTest {
         composeRule
             .onAllNodesWithText("Playback controls for a recording hidden by the current search.")
             .assertCountEquals(1)
-        composeRule.onNodeWithText("Stop playback").performScrollTo().performClick()
+        composeRule
+            .onNodeWithTag("recording-stop-52000000-0000-4000-8000-000000000005")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
         composeRule.runOnIdle {
             assertEquals(true, stoppedHiddenPlayback)
         }
-        composeRule.onNodeWithText("Language: en-US").assertIsDisplayed()
+        composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("")
+        composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "" }
+        composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
+        composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Sync: Complete").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Transcript available offline").assertCountEquals(1)
+        composeRule
+            .onAllNodesWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
+            .assertCountEquals(1)
+        composeRule
+            .onNodeWithTag(RECORDING_ROW_TEST_TAG_PREFIX + "50000000-0000-4000-8000-000000000005")
+            .performScrollTo()
+        composeRule
+            .onNodeWithTag("recording-play-50000000-0000-4000-8000-000000000005")
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals("50000000-0000-4000-8000-000000000005", playedRecordingId)
+        }
+        composeRule.onNodeWithText("Export").performScrollTo().performClick()
+        composeRule.runOnIdle {
+            assertEquals("50000000-0000-4000-8000-000000000005", exportedRecordingId)
+        }
+        composeRule.onNodeWithText("Retry sync").performScrollTo().performClick()
+        composeRule.runOnIdle {
+            assertEquals("51000000-0000-4000-8000-000000000005", retriedRecordingId)
+        }
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
+        composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
+        composeRule
+            .onNodeWithTag(SERVER_PROFILE_CARD_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals("93636d78-31f6-4349-899a-a87bb8bb6814", selectedProfileId)
+        }
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
+        composeRule.waitForIdle()
         composeRule
             .onNodeWithTag(REFRESH_MOBILE_ADMINISTRATION_TEST_TAG)
             .performScrollTo()
@@ -464,32 +550,6 @@ class VoiceAssetAppTest {
             assertEquals("60000000-0000-4000-8000-000000000006", editedAssetId)
             assertEquals("Renamed interview", metadataTitle)
             assertEquals(true, metadataSaved)
-        }
-        composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
-        repeat(4) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
-        composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
-        composeRule.onAllNodesWithText("Sync: Complete").assertCountEquals(1)
-        composeRule.onAllNodesWithText("Transcript available offline").assertCountEquals(1)
-        composeRule
-            .onAllNodesWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
-            .assertCountEquals(1)
-        composeRule.onNodeWithText("Play").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("50000000-0000-4000-8000-000000000005", playedRecordingId)
-        }
-        composeRule.onNodeWithText("Export").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("50000000-0000-4000-8000-000000000005", exportedRecordingId)
-        }
-        composeRule.onNodeWithText("Retry sync").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("51000000-0000-4000-8000-000000000005", retriedRecordingId)
-        }
-        composeRule.onNodeWithText("Use this server").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("93636d78-31f6-4349-899a-a87bb8bb6814", selectedProfileId)
         }
     }
 }

@@ -203,6 +203,7 @@ class MainActivity : ComponentActivity() {
                 },
                 onPauseRecordingPlayback = recordingPlayback::pause,
                 onStopRecordingPlayback = recordingPlayback::stop,
+                onPlaybackDecoderModeChanged = recordingPlayback::setDecoderMode,
                 onExportRecording = { value ->
                     val recordingSessionId = runCatching { RecordingSessionId.parse(value) }.getOrNull()
                     if (recordingSessionId == null) {

@@ -5,6 +5,15 @@ Server contract `0.22.0`. UI state is immutable; Room is the offline source of
 truth for server profiles, recording lifecycle checkpoints, device-local
 recordings, and the per-profile remote asset cache.
 
+The primary surface is recorder-first: the local library opens before account
+or server controls, with one top-bar navigation flow for recordings, capture,
+and settings. Search, filters, sorting, and the record FAB stay available from
+the library; language selection remains in Settings. Playback exposes one
+stateful row control and offers system-default, hardware-preferred, and
+compatibility preferences. Android `MediaPlayer` remains the portable codec
+boundary and safely falls back when a hardware decoder is unavailable; this is
+not a direct `MediaCodec` selection contract.
+
 The current candidate uses a foreground `MediaRecorder` service for M4A capture, direct Android
 Keystore AES-GCM for server credentials, and a strict OkHttp client with custom
 CA plus full certificate-fingerprint validation. Login validates both rotated

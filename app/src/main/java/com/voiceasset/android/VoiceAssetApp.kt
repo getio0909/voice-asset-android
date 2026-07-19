@@ -1,6 +1,7 @@
 package com.voiceasset.android
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,14 +28,18 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -57,6 +65,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.voiceasset.android.playback.RecordingPlaybackDecoderMode
 import com.voiceasset.android.playback.RecordingPlaybackStatus
 import com.voiceasset.android.playback.RecordingPlaybackUiState
 import com.voiceasset.android.ui.theme.VoiceAssetTheme
@@ -94,7 +103,41 @@ internal const val RECORD_BUTTON_TEST_TAG = "record-button"
 internal const val RECORDER_WAVEFORM_TEST_TAG = "recorder-waveform"
 internal const val LANGUAGE_SELECTOR_TEST_TAG = "language-selector"
 internal const val LANGUAGE_CHINESE_TEST_TAG = "language-chinese"
+internal const val RECORDER_SEARCH_TEST_TAG = "recorder-search"
+internal const val RECORDER_SETTINGS_TEST_TAG = "recorder-settings"
+internal const val RECORDER_BACK_TEST_TAG = "recorder-back"
+internal const val RECORD_FAB_TEST_TAG = "record-fab"
+internal const val RECORDING_ROW_TEST_TAG_PREFIX = "recording-row-"
+internal const val SERVER_PROFILE_CARD_TEST_TAG_PREFIX = "server-profile-card-"
+internal const val SERVER_PROFILE_SELECT_TEST_TAG_PREFIX = "server-profile-select-"
 private const val MAX_MOBILE_ADMINISTRATION_JOBS = 10
+private val RECORDER_ACCENT_RED = Color(0xFFFF4B55)
+
+private enum class RecorderSection {
+    RECORD,
+    RECORDINGS,
+    SETTINGS,
+}
+
+private enum class RecordingFilter {
+    ALL,
+    NEEDS_ATTENTION,
+    WITH_TRANSCRIPT,
+}
+
+private enum class RecordingSort {
+    RECENT,
+    NAME,
+    DURATION,
+}
+
+private val RecorderSection.titleRes: Int
+    get() =
+        when (this) {
+            RecorderSection.RECORD -> R.string.recorder_tab
+            RecorderSection.RECORDINGS -> R.string.recordings_tab
+            RecorderSection.SETTINGS -> R.string.settings_tab
+        }
 
 @Composable
 fun VoiceAssetApp(
@@ -144,23 +187,88 @@ fun VoiceAssetApp(
     onPlayRecording: (String) -> Unit = {},
     onPauseRecordingPlayback: () -> Unit = {},
     onStopRecordingPlayback: () -> Unit = {},
+    onPlaybackDecoderModeChanged: (RecordingPlaybackDecoderMode) -> Unit = {},
     onExportRecording: (String) -> Unit = {},
     onStartRecording: () -> Unit = {},
     onPauseRecording: () -> Unit = {},
     onResumeRecording: () -> Unit = {},
     onStopRecording: () -> Unit = {},
 ) {
-    VoiceAssetTheme {
+    var section by rememberSaveable { mutableStateOf(RecorderSection.RECORDINGS) }
+    var searchRequested by rememberSaveable { mutableStateOf(false) }
+    val systemDarkTheme = isSystemInDarkTheme()
+    var darkTheme by rememberSaveable { mutableStateOf(systemDarkTheme) }
+    var recordingFormat by rememberSaveable { mutableStateOf("M4A") }
+    var recordingSampleRate by rememberSaveable { mutableStateOf("44.1 kHz") }
+    var recordingBitrate by rememberSaveable { mutableStateOf("256 kbps") }
+    var recordingChannels by rememberSaveable { mutableStateOf("Mono") }
+    var autoStartRecording by rememberSaveable { mutableStateOf(false) }
+    var showRecordingNotification by rememberSaveable { mutableStateOf(true) }
+    val startRecordingDescription = stringResource(R.string.start_recording)
+
+    VoiceAssetTheme(darkTheme = darkTheme) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            Scaffold { contentPadding ->
+            Scaffold(
+                topBar = {
+                    RecorderAppBar(
+                        section = section,
+                        onBack = { section = RecorderSection.RECORDINGS },
+                        onSearch = {
+                            section = RecorderSection.RECORDINGS
+                            searchRequested = true
+                        },
+                        onOpenSettings = { section = RecorderSection.SETTINGS },
+                    )
+                },
+                floatingActionButton = {
+                    if (section == RecorderSection.RECORDINGS) {
+                        FloatingActionButton(
+                            modifier =
+                                Modifier
+                                    .size(88.dp)
+                                    .testTag(RECORD_FAB_TEST_TAG)
+                                    .semantics {
+                                        contentDescription = startRecordingDescription
+                                    },
+                            onClick = {
+                                section = RecorderSection.RECORD
+                                onStartRecording()
+                            },
+                            shape = CircleShape,
+                            containerColor = RECORDER_ACCENT_RED,
+                            contentColor = Color.White,
+                        ) {
+                            Text("●", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                },
+            ) { contentPadding ->
                 VoiceAssetHomeScreen(
                     uiState = uiState,
                     playbackState = playbackState,
+                    onPlaybackDecoderModeChanged = onPlaybackDecoderModeChanged,
                     language = language,
                     onLanguageSelected = onLanguageSelected,
+                    darkTheme = darkTheme,
+                    onDarkThemeChanged = { darkTheme = it },
+                    recordingFormat = recordingFormat,
+                    onRecordingFormatChanged = { recordingFormat = it },
+                    recordingSampleRate = recordingSampleRate,
+                    onRecordingSampleRateChanged = { recordingSampleRate = it },
+                    recordingBitrate = recordingBitrate,
+                    onRecordingBitrateChanged = { recordingBitrate = it },
+                    recordingChannels = recordingChannels,
+                    onRecordingChannelsChanged = { recordingChannels = it },
+                    autoStartRecording = autoStartRecording,
+                    onAutoStartRecordingChanged = { autoStartRecording = it },
+                    showRecordingNotification = showRecordingNotification,
+                    onShowRecordingNotificationChanged = { showRecordingNotification = it },
+                    section = section,
+                    searchRequested = searchRequested,
+                    onSearchRequestedChange = { searchRequested = it },
                     contentPadding = contentPadding,
                     onServerNameChanged = onServerNameChanged,
                     onServerUrlChanged = onServerUrlChanged,
@@ -216,36 +324,80 @@ fun VoiceAssetApp(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecorderTopBar(
-    language: AppLanguage,
-    onLanguageSelected: (AppLanguage) -> Unit,
+private fun RecorderAppBar(
+    section: RecorderSection,
+    onBack: () -> Unit,
+    onSearch: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = stringResource(R.string.app_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        LanguageSelector(language = language, onLanguageSelected = onLanguageSelected)
-    }
+    val backDescription = stringResource(R.string.recorder_back_description)
+    val searchDescription = stringResource(R.string.search_recordings_description)
+    val settingsDescription = stringResource(R.string.open_settings_description)
+
+    TopAppBar(
+        navigationIcon = {
+            if (section != RecorderSection.RECORDINGS) {
+                IconButton(
+                    modifier =
+                        Modifier
+                            .testTag(RECORDER_BACK_TEST_TAG)
+                            .semantics { contentDescription = backDescription },
+                    onClick = onBack,
+                ) {
+                    Text("‹", style = MaterialTheme.typography.headlineMedium)
+                }
+            }
+        },
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = stringResource(section.titleRes),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        actions = {
+            if (section == RecorderSection.RECORDINGS) {
+                IconButton(
+                    modifier =
+                        Modifier
+                            .testTag(RECORDER_SEARCH_TEST_TAG)
+                            .semantics {
+                                contentDescription = searchDescription
+                            },
+                    onClick = onSearch,
+                ) {
+                    Text("⌕", style = MaterialTheme.typography.titleLarge)
+                }
+            }
+            if (section != RecorderSection.SETTINGS) {
+                IconButton(
+                    modifier =
+                        Modifier
+                            .testTag(RECORDER_SETTINGS_TEST_TAG)
+                            .semantics { contentDescription = settingsDescription },
+                    onClick = onOpenSettings,
+                ) {
+                    Text("⚙", style = MaterialTheme.typography.titleLarge)
+                }
+            }
+        },
+    )
 }
 
 @Composable
 private fun LanguageSelector(
     language: AppLanguage,
     onLanguageSelected: (AppLanguage) -> Unit,
+    compact: Boolean = false,
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     Box {
@@ -255,16 +407,20 @@ private fun LanguageSelector(
         ) {
             Text(
                 text =
-                    stringResource(
-                        R.string.language_current,
+                    if (compact) {
+                        if (language == AppLanguage.SIMPLIFIED_CHINESE) "中" else "EN"
+                    } else {
                         stringResource(
-                            if (language == AppLanguage.SIMPLIFIED_CHINESE) {
-                                R.string.language_chinese
-                            } else {
-                                R.string.language_english
-                            },
-                        ),
-                    ),
+                            R.string.language_current,
+                            stringResource(
+                                if (language == AppLanguage.SIMPLIFIED_CHINESE) {
+                                    R.string.language_chinese
+                                } else {
+                                    R.string.language_english
+                                },
+                            ),
+                        )
+                    },
             )
         }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -294,6 +450,23 @@ private fun VoiceAssetHomeScreen(
     contentPadding: PaddingValues,
     language: AppLanguage,
     onLanguageSelected: (AppLanguage) -> Unit,
+    darkTheme: Boolean,
+    onDarkThemeChanged: (Boolean) -> Unit,
+    recordingFormat: String,
+    onRecordingFormatChanged: (String) -> Unit,
+    recordingSampleRate: String,
+    onRecordingSampleRateChanged: (String) -> Unit,
+    recordingBitrate: String,
+    onRecordingBitrateChanged: (String) -> Unit,
+    recordingChannels: String,
+    onRecordingChannelsChanged: (String) -> Unit,
+    autoStartRecording: Boolean,
+    onAutoStartRecordingChanged: (Boolean) -> Unit,
+    showRecordingNotification: Boolean,
+    onShowRecordingNotificationChanged: (Boolean) -> Unit,
+    section: RecorderSection,
+    searchRequested: Boolean,
+    onSearchRequestedChange: (Boolean) -> Unit,
     onServerNameChanged: (String) -> Unit,
     onServerUrlChanged: (String) -> Unit,
     onServerEmailChanged: (String) -> Unit,
@@ -336,126 +509,191 @@ private fun VoiceAssetHomeScreen(
     onPlayRecording: (String) -> Unit,
     onPauseRecordingPlayback: () -> Unit,
     onStopRecordingPlayback: () -> Unit,
+    onPlaybackDecoderModeChanged: (RecordingPlaybackDecoderMode) -> Unit,
     onExportRecording: (String) -> Unit,
     onStartRecording: () -> Unit,
     onPauseRecording: () -> Unit,
     onResumeRecording: () -> Unit,
     onStopRecording: () -> Unit,
 ) {
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(section) { scrollState.scrollTo(0) }
+
     Column(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(contentPadding)
                 .padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        RecorderTopBar(
-            language = language,
-            onLanguageSelected = onLanguageSelected,
-        )
-
-        Text(
-            text = stringResource(R.string.initialized),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = stringResource(R.string.initialized_description),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        RecordingCard(
-            status = uiState.recordingStatus,
-            error = uiState.recordingError,
-            uploadPolicyOverride = uiState.recordingUploadPolicyOverride,
-            transcriptionPolicyOverride = uiState.recordingTranscriptionPolicyOverride,
-            onUploadPolicyOverrideChanged = onRecordingUploadPolicyOverrideChanged,
-            onTranscriptionPolicyOverrideChanged = onRecordingTranscriptionPolicyOverrideChanged,
-            onStart = onStartRecording,
-            onPause = onPauseRecording,
-            onResume = onResumeRecording,
-            onStop = onStopRecording,
-        )
-
-        LocalRecordingsCard(
-            totalCount = uiState.localRecordingCount,
-            matchCount = uiState.localRecordingMatchCount,
-            recordings = uiState.localRecordings,
-            isSearchActive = uiState.offlineLibrarySearchQuery.isNotBlank(),
-            playbackState = playbackState,
-            onRetry = onRetryRecordingSync,
-            onStartUpload = onStartRecordingUpload,
-            onStartTranscription = onStartRecordingTranscription,
-            onPlay = onPlayRecording,
-            onPausePlayback = onPauseRecordingPlayback,
-            onStopPlayback = onStopRecordingPlayback,
-            onExport = onExportRecording,
-        )
-
-        TranscriptCard(
-            recordingStatus = uiState.recordingStatus,
-            transcriptionPolicy = uiState.activeRecordingTranscriptionPolicy,
-            language = uiState.transcriptLanguage,
-            text = uiState.transcriptText,
-        )
-
-        OfflineLibrarySearchField(
-            query = uiState.offlineLibrarySearchQuery,
-            onQueryChanged = onOfflineLibrarySearchQueryChanged,
-            onClear = onClearOfflineLibrarySearch,
-        )
-
-        StatusCard(
-            label = stringResource(R.string.server_status),
-            value =
-                when (uiState.serverStatus) {
-                    ServerStatus.NOT_CONFIGURED -> stringResource(R.string.server_not_configured)
-                    ServerStatus.CONFIGURED -> stringResource(R.string.server_configured)
-                },
-            supportingText =
-                when (uiState.serverStatus) {
-                    ServerStatus.NOT_CONFIGURED -> stringResource(R.string.server_not_configured_description)
-                    ServerStatus.CONFIGURED ->
-                        pluralStringResource(
-                            R.plurals.server_configured_description,
-                            uiState.serverProfiles.size,
-                            uiState.serverProfiles.size,
-                        )
-                },
-        )
-
-        uiState.serverProfiles.forEach { profile ->
-            ServerProfileCard(
-                profile = profile,
-                canSwitch = uiState.recordingStatus.allowsProfileSwitch(),
-                onSelect = onServerSelected,
+        if (section != RecorderSection.RECORD) {
+            Text(
+                text =
+                    stringResource(
+                        if (section == RecorderSection.RECORDINGS) {
+                            R.string.recordings_tab_description
+                        } else {
+                            R.string.settings_tab_description
+                        },
+                    ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
+        if (section == RecorderSection.SETTINGS) {
+            RecorderSettingsCard(
+                language = language,
+                onLanguageSelected = onLanguageSelected,
+                playbackDecoderMode = playbackState.decoderMode,
+                onPlaybackDecoderModeChanged = onPlaybackDecoderModeChanged,
+                darkTheme = darkTheme,
+                onDarkThemeChanged = onDarkThemeChanged,
+                recordingFormat = recordingFormat,
+                onRecordingFormatChanged = onRecordingFormatChanged,
+                recordingSampleRate = recordingSampleRate,
+                onRecordingSampleRateChanged = onRecordingSampleRateChanged,
+                recordingBitrate = recordingBitrate,
+                onRecordingBitrateChanged = onRecordingBitrateChanged,
+                recordingChannels = recordingChannels,
+                onRecordingChannelsChanged = onRecordingChannelsChanged,
+                autoStartRecording = autoStartRecording,
+                onAutoStartRecordingChanged = onAutoStartRecordingChanged,
+                showRecordingNotification = showRecordingNotification,
+                onShowRecordingNotificationChanged = onShowRecordingNotificationChanged,
+            )
+        }
+
+        if (section == RecorderSection.RECORD) {
+            Text(
+                text = stringResource(R.string.initialized),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.initialized_description),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            RecordingCard(
+                status = uiState.recordingStatus,
+                error = uiState.recordingError,
+                uploadPolicyOverride = uiState.recordingUploadPolicyOverride,
+                transcriptionPolicyOverride = uiState.recordingTranscriptionPolicyOverride,
+                onUploadPolicyOverrideChanged = onRecordingUploadPolicyOverrideChanged,
+                onTranscriptionPolicyOverrideChanged = onRecordingTranscriptionPolicyOverrideChanged,
+                onStart = onStartRecording,
+                onPause = onPauseRecording,
+                onResume = onResumeRecording,
+                onStop = onStopRecording,
+            )
+        }
+
+        if (section == RecorderSection.RECORDINGS) {
+            OfflineLibrarySearchField(
+                query = uiState.offlineLibrarySearchQuery,
+                onQueryChanged = onOfflineLibrarySearchQueryChanged,
+                onClear = onClearOfflineLibrarySearch,
+                compact = true,
+            )
+        }
+
+        if (section != RecorderSection.SETTINGS) {
+            LocalRecordingsCard(
+                totalCount = uiState.localRecordingCount,
+                matchCount = uiState.localRecordingMatchCount,
+                recordings = uiState.localRecordings,
+                isSearchActive = uiState.offlineLibrarySearchQuery.isNotBlank(),
+                playbackState = playbackState,
+                onRetry = onRetryRecordingSync,
+                onStartUpload = onStartRecordingUpload,
+                onStartTranscription = onStartRecordingTranscription,
+                onPlay = onPlayRecording,
+                onPausePlayback = onPauseRecordingPlayback,
+                onStopPlayback = onStopRecordingPlayback,
+                onExport = onExportRecording,
+            )
+        }
+
+        if (section == RecorderSection.RECORD) {
+            TranscriptCard(
+                recordingStatus = uiState.recordingStatus,
+                transcriptionPolicy = uiState.activeRecordingTranscriptionPolicy,
+                language = uiState.transcriptLanguage,
+                text = uiState.transcriptText,
+            )
+        }
+
+        if (section == RecorderSection.RECORD) {
+            OfflineLibrarySearchField(
+                query = uiState.offlineLibrarySearchQuery,
+                onQueryChanged = onOfflineLibrarySearchQueryChanged,
+                onClear = onClearOfflineLibrarySearch,
+            )
+        }
+
+        if (section == RecorderSection.RECORDINGS && searchRequested) {
+            TextButton(onClick = { onSearchRequestedChange(false) }) {
+                Text(stringResource(R.string.close_search))
+            }
+        }
+
+        if (section != RecorderSection.RECORDINGS) {
+            StatusCard(
+                label = stringResource(R.string.server_status),
+                value =
+                    when (uiState.serverStatus) {
+                        ServerStatus.NOT_CONFIGURED -> stringResource(R.string.server_not_configured)
+                        ServerStatus.CONFIGURED -> stringResource(R.string.server_configured)
+                    },
+                supportingText =
+                    when (uiState.serverStatus) {
+                        ServerStatus.NOT_CONFIGURED -> stringResource(R.string.server_not_configured_description)
+                        ServerStatus.CONFIGURED ->
+                            pluralStringResource(
+                                R.plurals.server_configured_description,
+                                uiState.serverProfiles.size,
+                                uiState.serverProfiles.size,
+                            )
+                    },
+            )
+
+            uiState.serverProfiles.forEach { profile ->
+                ServerProfileCard(
+                    profile = profile,
+                    canSwitch = uiState.recordingStatus.allowsProfileSwitch(),
+                    onSelect = onServerSelected,
+                )
+            }
+        }
+
         if (uiState.serverStatus == ServerStatus.CONFIGURED) {
-            ServerSessionReconnectCard(
-                state = uiState.serverSessionReconnect,
-                onEmailChanged = onSessionReconnectEmailChanged,
-                onPasswordChanged = onSessionReconnectPasswordChanged,
-                onReconnect = onReconnectActiveServerProfile,
-            )
-            DeviceSessionsCard(
-                state = uiState.deviceSessions,
-                onRefresh = onRefreshDeviceSessions,
-                onRequestRevocation = onRequestDeviceSessionRevocation,
-                onCancelRevocation = onCancelDeviceSessionRevocation,
-                onConfirmRevocation = onConfirmDeviceSessionRevocation,
-            )
-            MobileAdministrationCard(
-                state = uiState.mobileAdministration,
-                onRefresh = onRefreshMobileAdministration,
-                onSetProviderProfileEnabled = onSetProviderProfileEnabled,
-                onCheckProviderProfileHealth = onCheckProviderProfileHealth,
-                onRetryAdministrationJob = onRetryAdministrationJob,
-            )
+            if (section != RecorderSection.RECORDINGS) {
+                ServerSessionReconnectCard(
+                    state = uiState.serverSessionReconnect,
+                    onEmailChanged = onSessionReconnectEmailChanged,
+                    onPasswordChanged = onSessionReconnectPasswordChanged,
+                    onReconnect = onReconnectActiveServerProfile,
+                )
+                DeviceSessionsCard(
+                    state = uiState.deviceSessions,
+                    onRefresh = onRefreshDeviceSessions,
+                    onRequestRevocation = onRequestDeviceSessionRevocation,
+                    onCancelRevocation = onCancelDeviceSessionRevocation,
+                    onConfirmRevocation = onConfirmDeviceSessionRevocation,
+                )
+                MobileAdministrationCard(
+                    state = uiState.mobileAdministration,
+                    onRefresh = onRefreshMobileAdministration,
+                    onSetProviderProfileEnabled = onSetProviderProfileEnabled,
+                    onCheckProviderProfileHealth = onCheckProviderProfileHealth,
+                    onRetryAdministrationJob = onRetryAdministrationJob,
+                )
+            }
             SyncedAssetsCard(
                 totalCount = uiState.syncedAssetCount,
                 matchCount = uiState.syncedAssetMatchCount,
@@ -477,23 +715,206 @@ private fun VoiceAssetHomeScreen(
             }
         }
 
-        ServerProfileForm(
-            draft = uiState.serverDraft,
-            isSaving = uiState.isSavingServer,
-            error = uiState.serverFormError,
-            onNameChanged = onServerNameChanged,
-            onUrlChanged = onServerUrlChanged,
-            onEmailChanged = onServerEmailChanged,
-            onPasswordChanged = onServerPasswordChanged,
-            onPairingPayloadChanged = onPairingPayloadChanged,
-            onCustomCaPemChanged = onCustomCaPemChanged,
-            onFingerprintChanged = onCertificateFingerprintChanged,
-            onUploadPolicyChanged = onUploadPolicyChanged,
-            onTranscriptionPolicyChanged = onTranscriptionPolicyChanged,
-            onSave = onSaveServer,
-            onPair = onPairServer,
-            onScan = onScanPairingCode,
+        if (section != RecorderSection.RECORDINGS) {
+            ServerProfileForm(
+                draft = uiState.serverDraft,
+                isSaving = uiState.isSavingServer,
+                error = uiState.serverFormError,
+                onNameChanged = onServerNameChanged,
+                onUrlChanged = onServerUrlChanged,
+                onEmailChanged = onServerEmailChanged,
+                onPasswordChanged = onServerPasswordChanged,
+                onPairingPayloadChanged = onPairingPayloadChanged,
+                onCustomCaPemChanged = onCustomCaPemChanged,
+                onFingerprintChanged = onCertificateFingerprintChanged,
+                onUploadPolicyChanged = onUploadPolicyChanged,
+                onTranscriptionPolicyChanged = onTranscriptionPolicyChanged,
+                onSave = onSaveServer,
+                onPair = onPairServer,
+                onScan = onScanPairingCode,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecorderSettingsCard(
+    language: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    playbackDecoderMode: RecordingPlaybackDecoderMode,
+    onPlaybackDecoderModeChanged: (RecordingPlaybackDecoderMode) -> Unit,
+    darkTheme: Boolean,
+    onDarkThemeChanged: (Boolean) -> Unit,
+    recordingFormat: String,
+    onRecordingFormatChanged: (String) -> Unit,
+    recordingSampleRate: String,
+    onRecordingSampleRateChanged: (String) -> Unit,
+    recordingBitrate: String,
+    onRecordingBitrateChanged: (String) -> Unit,
+    recordingChannels: String,
+    onRecordingChannelsChanged: (String) -> Unit,
+    autoStartRecording: Boolean,
+    onAutoStartRecordingChanged: (Boolean) -> Unit,
+    showRecordingNotification: Boolean,
+    onShowRecordingNotificationChanged: (Boolean) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.recorder_settings_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.recorder_settings_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.language_setting), style = MaterialTheme.typography.bodyLarge)
+                LanguageSelector(
+                    language = language,
+                    onLanguageSelected = onLanguageSelected,
+                )
+            }
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_format),
+                values = listOf("M4A", "WAV", "3GP"),
+                selected = recordingFormat,
+                onSelected = onRecordingFormatChanged,
+                tagPrefix = "recording-format-",
+            )
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_sample_rate),
+                values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
+                selected = recordingSampleRate,
+                onSelected = onRecordingSampleRateChanged,
+                tagPrefix = "recording-sample-rate-",
+            )
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_bitrate),
+                values = listOf("128 kbps", "256 kbps", "320 kbps"),
+                selected = recordingBitrate,
+                onSelected = onRecordingBitrateChanged,
+                tagPrefix = "recording-bitrate-",
+            )
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_channels),
+                values = listOf("Mono", "Stereo"),
+                selected = recordingChannels,
+                onSelected = onRecordingChannelsChanged,
+                tagPrefix = "recording-channels-",
+            )
+            PlaybackDecoderChoiceRow(
+                selected = playbackDecoderMode,
+                onSelected = onPlaybackDecoderModeChanged,
+            )
+            SettingSwitchRow(
+                label = stringResource(R.string.dark_theme),
+                checked = darkTheme,
+                onCheckedChange = onDarkThemeChanged,
+            )
+            SettingSwitchRow(
+                label = stringResource(R.string.auto_start_recording),
+                checked = autoStartRecording,
+                onCheckedChange = onAutoStartRecordingChanged,
+            )
+            SettingSwitchRow(
+                label = stringResource(R.string.recording_notification),
+                checked = showRecordingNotification,
+                onCheckedChange = onShowRecordingNotificationChanged,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaybackDecoderChoiceRow(
+    selected: RecordingPlaybackDecoderMode,
+    onSelected: (RecordingPlaybackDecoderMode) -> Unit,
+) {
+    val values =
+        listOf(
+            RecordingPlaybackDecoderMode.SYSTEM_DEFAULT to stringResource(R.string.playback_decoder_system),
+            RecordingPlaybackDecoderMode.HARDWARE_PREFERRED to stringResource(R.string.playback_decoder_hardware),
+            RecordingPlaybackDecoderMode.COMPATIBILITY to stringResource(R.string.playback_decoder_compatibility),
         )
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(stringResource(R.string.playback_decoder), style = MaterialTheme.typography.labelLarge)
+        Text(
+            stringResource(R.string.playback_decoder_description),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            values.forEach { (mode, label) ->
+                val modifier = Modifier.weight(1f).testTag("playback-decoder-${mode.name.lowercase()}")
+                if (mode == selected) {
+                    Button(modifier = modifier, onClick = { onSelected(mode) }) { Text(label) }
+                } else {
+                    OutlinedButton(modifier = modifier, onClick = { onSelected(mode) }) { Text(label) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingChoiceRow(
+    label: String,
+    values: List<String>,
+    selected: String,
+    onSelected: (String) -> Unit,
+    tagPrefix: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(label, style = MaterialTheme.typography.labelLarge)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            values.forEach { value ->
+                val modifier = Modifier.weight(1f).testTag(tagPrefix + value)
+                if (value == selected) {
+                    Button(modifier = modifier, onClick = { onSelected(value) }) {
+                        Text(value)
+                    }
+                } else {
+                    OutlinedButton(modifier = modifier, onClick = { onSelected(value) }) {
+                        Text(value)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingSwitchRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -1071,7 +1492,31 @@ private fun OfflineLibrarySearchField(
     query: String,
     onQueryChanged: (String) -> Unit,
     onClear: () -> Unit,
+    compact: Boolean = false,
 ) {
+    if (compact) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChanged,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .testTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG),
+            placeholder = { Text(stringResource(R.string.offline_library_search)) },
+            leadingIcon = { Text("⌕", style = MaterialTheme.typography.titleLarge) },
+            trailingIcon = {
+                if (query.isNotBlank()) {
+                    TextButton(onClick = onClear) {
+                        Text(stringResource(R.string.clear_search))
+                    }
+                }
+            },
+            shape = RoundedCornerShape(28.dp),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        )
+        return
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -1116,6 +1561,29 @@ private fun LocalRecordingsCard(
     onStopPlayback: () -> Unit,
     onExport: (String) -> Unit,
 ) {
+    var filter by rememberSaveable { mutableStateOf(RecordingFilter.ALL) }
+    var sort by rememberSaveable { mutableStateOf(RecordingSort.RECENT) }
+    var filterExpanded by rememberSaveable { mutableStateOf(false) }
+    var sortExpanded by rememberSaveable { mutableStateOf(false) }
+    val visibleRecordings =
+        recordings
+            .filter { recording ->
+                when (filter) {
+                    RecordingFilter.ALL -> true
+                    RecordingFilter.NEEDS_ATTENTION ->
+                        recording.errorCode != null ||
+                            recording.syncStatus == SyncUiStatus.FAILED ||
+                            recording.syncStatus == SyncUiStatus.BLOCKED
+                    RecordingFilter.WITH_TRANSCRIPT -> recording.hasTranscript
+                }
+            }.let { filtered ->
+                when (sort) {
+                    RecordingSort.RECENT -> filtered
+                    RecordingSort.NAME -> filtered.sortedBy { it.fileName.lowercase() }
+                    RecordingSort.DURATION -> filtered.sortedByDescending { it.durationMillis ?: 0L }
+                }
+            }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -1124,11 +1592,73 @@ private fun LocalRecordingsCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = stringResource(R.string.local_recordings),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.local_recordings),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Box {
+                        TextButton(
+                            modifier = Modifier.testTag("recording-filter"),
+                            onClick = { filterExpanded = true },
+                        ) {
+                            Text(
+                                text =
+                                    stringResource(R.string.recording_filter) +
+                                        ": " +
+                                        recordingFilterLabel(filter),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = filterExpanded,
+                            onDismissRequest = { filterExpanded = false },
+                        ) {
+                            RecordingFilter.values().forEach { candidate ->
+                                DropdownMenuItem(
+                                    text = { Text(recordingFilterLabel(candidate)) },
+                                    onClick = {
+                                        filter = candidate
+                                        filterExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    Box {
+                        TextButton(
+                            modifier = Modifier.testTag("recording-sort"),
+                            onClick = { sortExpanded = true },
+                        ) {
+                            Text(
+                                text =
+                                    stringResource(R.string.recording_sort) +
+                                        ": " +
+                                        recordingSortLabel(sort),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = sortExpanded,
+                            onDismissRequest = { sortExpanded = false },
+                        ) {
+                            RecordingSort.values().forEach { candidate ->
+                                DropdownMenuItem(
+                                    text = { Text(recordingSortLabel(candidate)) },
+                                    onClick = {
+                                        sort = candidate
+                                        sortExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             Text(
                 text =
                     if (isSearchActive) {
@@ -1167,7 +1697,7 @@ private fun LocalRecordingsCard(
                     onStop = onStopPlayback,
                 )
             }
-            if (recordings.isEmpty()) {
+            if (visibleRecordings.isEmpty()) {
                 Text(
                     text =
                         stringResource(
@@ -1181,7 +1711,7 @@ private fun LocalRecordingsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                recordings.forEachIndexed { index, recording ->
+                visibleRecordings.forEachIndexed { index, recording ->
                     if (index > 0) {
                         HorizontalDivider()
                     }
@@ -1197,9 +1727,9 @@ private fun LocalRecordingsCard(
                         onExport = onExport,
                     )
                 }
-                if (matchCount > recordings.size) {
+                if (matchCount > visibleRecordings.size) {
                     Text(
-                        text = stringResource(R.string.local_recordings_recent_limit, recordings.size),
+                        text = stringResource(R.string.local_recordings_recent_limit, visibleRecordings.size),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1221,20 +1751,78 @@ private fun LocalRecordingRow(
     onStopPlayback: () -> Unit,
     onExport: (String) -> Unit,
 ) {
+    val isCurrentPlayback = playbackState.recordingSessionId == recording.id
+    val playbackStatus =
+        if (isCurrentPlayback) playbackState.status else RecordingPlaybackStatus.IDLE
+    val playDescription =
+        stringResource(
+            when (playbackStatus) {
+                RecordingPlaybackStatus.PLAYING -> R.string.pause_playback
+                RecordingPlaybackStatus.PREPARING,
+                RecordingPlaybackStatus.VERIFYING,
+                -> R.string.stop_playback
+                else -> R.string.play_recording
+            },
+        )
+
     Column(
-        modifier = Modifier.padding(vertical = 6.dp),
+        modifier =
+            Modifier
+                .testTag(RECORDING_ROW_TEST_TAG_PREFIX + recording.id)
+                .padding(vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            text = recording.fileName,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Medium,
-        )
-        Text(
-            text = recordingStatusText(recording.recordingStatus),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .testTag("recording-play-${recording.id}")
+                        .semantics { contentDescription = playDescription },
+                shape = CircleShape,
+                onClick = {
+                    when (playbackStatus) {
+                        RecordingPlaybackStatus.PLAYING -> onPausePlayback()
+                        RecordingPlaybackStatus.PREPARING,
+                        RecordingPlaybackStatus.VERIFYING,
+                        -> onStopPlayback()
+                        else -> onPlay(recording.id)
+                    }
+                },
+                enabled = recording.canPlay,
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+            ) {
+                Text(
+                    when (playbackStatus) {
+                        RecordingPlaybackStatus.PLAYING -> "Ⅱ"
+                        RecordingPlaybackStatus.PREPARING,
+                        RecordingPlaybackStatus.VERIFYING,
+                        -> "■"
+                        else -> "▶"
+                    },
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = recording.fileName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = recordingStatusText(recording.recordingStatus),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         recording.durationMillis?.let { durationMillis ->
             Text(
                 text = stringResource(R.string.local_recording_duration, formatDuration(durationMillis)),
@@ -1307,13 +1895,15 @@ private fun LocalRecordingRow(
                 }
             }
             if (recording.canPlay) {
-                RecordingPlaybackActions(
-                    recordingId = recording.id,
-                    playbackState = playbackState,
-                    onPlay = onPlay,
-                    onPause = onPausePlayback,
-                    onStop = onStopPlayback,
-                )
+                if (playbackStatus != RecordingPlaybackStatus.IDLE) {
+                    RecordingPlaybackActions(
+                        recordingId = recording.id,
+                        playbackState = playbackState,
+                        onPlay = onPlay,
+                        onPause = onPausePlayback,
+                        onStop = onStopPlayback,
+                    )
+                }
             }
             if (recording.canExport) {
                 OutlinedButton(onClick = { onExport(recording.id) }) {
@@ -1323,6 +1913,26 @@ private fun LocalRecordingRow(
         }
     }
 }
+
+@Composable
+private fun recordingFilterLabel(filter: RecordingFilter): String =
+    stringResource(
+        when (filter) {
+            RecordingFilter.ALL -> R.string.recording_filter_all
+            RecordingFilter.NEEDS_ATTENTION -> R.string.recording_filter_attention
+            RecordingFilter.WITH_TRANSCRIPT -> R.string.recording_filter_transcripts
+        },
+    )
+
+@Composable
+private fun recordingSortLabel(sort: RecordingSort): String =
+    stringResource(
+        when (sort) {
+            RecordingSort.RECENT -> R.string.recording_sort_recent
+            RecordingSort.NAME -> R.string.recording_sort_name
+            RecordingSort.DURATION -> R.string.recording_sort_duration
+        },
+    )
 
 @Composable
 private fun RecordingPlaybackActions(
@@ -1357,7 +1967,10 @@ private fun RecordingPlaybackActions(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = onStop) {
+            OutlinedButton(
+                modifier = Modifier.testTag("recording-stop-$recordingId"),
+                onClick = onStop,
+            ) {
                 Text(stringResource(R.string.stop_playback))
             }
         }
@@ -1366,7 +1979,10 @@ private fun RecordingPlaybackActions(
             OutlinedButton(onClick = onPause) {
                 Text(stringResource(R.string.pause_playback))
             }
-            OutlinedButton(onClick = onStop) {
+            OutlinedButton(
+                modifier = Modifier.testTag("recording-stop-$recordingId"),
+                onClick = onStop,
+            ) {
                 Text(stringResource(R.string.stop_playback))
             }
         }
@@ -1375,7 +1991,10 @@ private fun RecordingPlaybackActions(
             OutlinedButton(onClick = { onPlay(recordingId) }) {
                 Text(stringResource(R.string.resume_playback))
             }
-            OutlinedButton(onClick = onStop) {
+            OutlinedButton(
+                modifier = Modifier.testTag("recording-stop-$recordingId"),
+                onClick = onStop,
+            ) {
                 Text(stringResource(R.string.stop_playback))
             }
         }
@@ -1740,7 +2359,10 @@ private fun ServerProfileCard(
     onSelect: (String) -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .testTag(SERVER_PROFILE_CARD_TEST_TAG_PREFIX + profile.id),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
     ) {
         Column(
@@ -1776,6 +2398,7 @@ private fun ServerProfileCard(
             )
             if (!profile.isActive) {
                 OutlinedButton(
+                    modifier = Modifier.testTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + profile.id),
                     onClick = { onSelect(profile.id) },
                     enabled = canSwitch,
                 ) {
@@ -1904,6 +2527,10 @@ private fun RecordingCard(
                             shape = CircleShape,
                             onClick = onStart,
                             enabled = false,
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    disabledContainerColor = RECORDER_ACCENT_RED.copy(alpha = 0.45f),
+                                ),
                         ) {
                             Text("●", style = MaterialTheme.typography.headlineLarge)
                         }
@@ -1919,6 +2546,7 @@ private fun RecordingCard(
                                     .semantics { contentDescription = startButtonDescription },
                             shape = CircleShape,
                             onClick = onStart,
+                            colors = ButtonDefaults.buttonColors(containerColor = RECORDER_ACCENT_RED),
                         ) {
                             Text("●", style = MaterialTheme.typography.headlineLarge)
                         }
@@ -1930,6 +2558,7 @@ private fun RecordingCard(
                                     .semantics { contentDescription = pauseButtonDescription },
                             shape = CircleShape,
                             onClick = onPause,
+                            colors = ButtonDefaults.buttonColors(containerColor = RECORDER_ACCENT_RED),
                         ) {
                             Text("Ⅱ", style = MaterialTheme.typography.headlineMedium)
                         }

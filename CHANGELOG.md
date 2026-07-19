@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Added
+
+- Added a recorder-first library shell with top-bar navigation, local search,
+  filters, sorting, a single record action, and Settings-only language
+  selection. Playback rows now expose one stateful play/pause/stop control.
+- Added system-default, hardware-preferred, and compatibility playback choices
+  with safe platform-player fallback when a device does not expose a hardware
+  decoder.
+
 ### Changed
 
 - Fixed the production `MediaRecorder` configuration order so the API 30+

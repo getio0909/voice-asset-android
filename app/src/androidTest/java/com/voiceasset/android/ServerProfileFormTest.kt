@@ -78,6 +78,7 @@ class ServerProfileFormTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule
             .onNodeWithText(context.getString(R.string.show_recording_options))
             .performScrollTo()
@@ -143,6 +144,7 @@ class ServerProfileFormTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.onNodeWithText(origin).performScrollTo().assertIsDisplayed()
     }
 
@@ -163,6 +165,7 @@ class ServerProfileFormTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule
             .onNodeWithTag(SCAN_PAIRING_TEST_TAG)
             .performScrollTo()

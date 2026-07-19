@@ -15,7 +15,14 @@ import java.io.File
 data class RecordingPlaybackUiState(
     val recordingSessionId: String? = null,
     val status: RecordingPlaybackStatus = RecordingPlaybackStatus.IDLE,
+    val decoderMode: RecordingPlaybackDecoderMode = RecordingPlaybackDecoderMode.SYSTEM_DEFAULT,
 )
+
+enum class RecordingPlaybackDecoderMode {
+    SYSTEM_DEFAULT,
+    HARDWARE_PREFERRED,
+    COMPATIBILITY,
+}
 
 enum class RecordingPlaybackStatus {
     IDLE,
@@ -57,6 +64,10 @@ internal fun interface RecordingPlaybackEngineFactory {
     fun create(): RecordingPlaybackEngine
 }
 
+internal interface RecordingPlaybackDecoderModeSink {
+    var decoderMode: RecordingPlaybackDecoderMode
+}
+
 internal interface RecordingPlaybackFocus {
     fun request(): Boolean
 
@@ -82,6 +93,14 @@ internal class RecordingPlaybackController(
     private var hasAudioFocus = false
 
     val state: StateFlow<RecordingPlaybackUiState> = mutableState.asStateFlow()
+
+    fun setDecoderMode(mode: RecordingPlaybackDecoderMode) {
+        if (mutableState.value.decoderMode == mode) {
+            return
+        }
+        mutableState.value = mutableState.value.copy(decoderMode = mode)
+        (engineFactory as? RecordingPlaybackDecoderModeSink)?.decoderMode = mode
+    }
 
     fun play(recordingSessionId: RecordingSessionId) {
         val current = mutableState.value
@@ -109,6 +128,7 @@ internal class RecordingPlaybackController(
             RecordingPlaybackUiState(
                 recordingSessionId = recordingSessionId.value,
                 status = RecordingPlaybackStatus.VERIFYING,
+                decoderMode = decoderMode(),
             )
         verificationJob =
             scope.launch {
@@ -196,6 +216,7 @@ internal class RecordingPlaybackController(
             RecordingPlaybackUiState(
                 recordingSessionId = recordingSessionId,
                 status = RecordingPlaybackStatus.PREPARING,
+                decoderMode = decoderMode(),
             )
         val listener =
             object : RecordingPlaybackEngine.Listener {
@@ -209,6 +230,7 @@ internal class RecordingPlaybackController(
                             RecordingPlaybackUiState(
                                 recordingSessionId = recordingSessionId,
                                 status = RecordingPlaybackStatus.PAUSED,
+                                decoderMode = decoderMode(),
                             )
                         return
                     }
@@ -218,6 +240,7 @@ internal class RecordingPlaybackController(
                             RecordingPlaybackUiState(
                                 recordingSessionId = recordingSessionId,
                                 status = RecordingPlaybackStatus.PLAYING,
+                                decoderMode = decoderMode(),
                             )
                     } catch (_: Exception) {
                         fail(recordingSessionId, requestGeneration)
@@ -332,6 +355,7 @@ internal class RecordingPlaybackController(
             RecordingPlaybackUiState(
                 recordingSessionId = recordingSessionId,
                 status = RecordingPlaybackStatus.FAILED,
+                decoderMode = decoderMode(),
             )
     }
 
@@ -344,9 +368,13 @@ internal class RecordingPlaybackController(
         resumeOnFocusGain = false
         abandonFocus()
         if (updateState) {
-            mutableState.value = RecordingPlaybackUiState()
+            mutableState.value = RecordingPlaybackUiState(decoderMode = decoderMode())
         }
     }
+
+    private fun decoderMode(): RecordingPlaybackDecoderMode =
+        (engineFactory as? RecordingPlaybackDecoderModeSink)?.decoderMode
+            ?: mutableState.value.decoderMode
 }
 
 private fun RecordingPlaybackEngine?.releaseSafely() {
