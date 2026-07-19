@@ -483,8 +483,10 @@ class VoiceAssetAppTest {
             .onAllNodesWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
             .assertCountEquals(1)
         composeRule
-            .onNodeWithTag("recording-play-50000000-0000-4000-8000-000000000005")
+            .onNodeWithTag(RECORDING_ROW_TEST_TAG_PREFIX + "50000000-0000-4000-8000-000000000005")
             .performScrollTo()
+        composeRule
+            .onNodeWithTag("recording-play-50000000-0000-4000-8000-000000000005")
             .assertIsDisplayed()
             .performClick()
         composeRule.runOnIdle {

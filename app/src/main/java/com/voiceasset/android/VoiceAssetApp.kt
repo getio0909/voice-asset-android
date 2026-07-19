@@ -107,6 +107,7 @@ internal const val RECORDER_SEARCH_TEST_TAG = "recorder-search"
 internal const val RECORDER_SETTINGS_TEST_TAG = "recorder-settings"
 internal const val RECORDER_BACK_TEST_TAG = "recorder-back"
 internal const val RECORD_FAB_TEST_TAG = "record-fab"
+internal const val RECORDING_ROW_TEST_TAG_PREFIX = "recording-row-"
 private const val MAX_MOBILE_ADMINISTRATION_JOBS = 10
 private val RECORDER_ACCENT_RED = Color(0xFFFF4B55)
 
@@ -1763,7 +1764,10 @@ private fun LocalRecordingRow(
         )
 
     Column(
-        modifier = Modifier.padding(vertical = 6.dp),
+        modifier =
+            Modifier
+                .testTag(RECORDING_ROW_TEST_TAG_PREFIX + recording.id)
+                .padding(vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
