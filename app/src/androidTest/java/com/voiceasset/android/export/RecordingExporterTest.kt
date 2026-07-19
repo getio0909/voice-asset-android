@@ -8,6 +8,7 @@ import com.voiceasset.android.VoiceAssetApplication
 import com.voiceasset.core.model.RecordingSessionId
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -53,6 +54,9 @@ class RecordingExporterTest {
                 assertEquals(RecordingFileProvider.authority(application.packageName), uri?.authority)
                 assertEquals(fileName, uri?.lastPathSegment)
                 assertEquals(bytes.size.toLong(), file.length())
+                application.contentResolver.openFileDescriptor(requireNotNull(uri), "r").use { descriptor ->
+                    assertNotNull(descriptor)
+                }
 
                 file.writeBytes(bytes + byteArrayOf(1))
                 assertNull(exporter.createShareIntent(recordingId))

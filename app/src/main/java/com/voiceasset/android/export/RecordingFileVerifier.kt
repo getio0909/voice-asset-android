@@ -42,12 +42,10 @@ internal class RecordingFileVerifier(
             if (!RecordingFileProvider.isSupportedRecordingName(recording.fileName)) {
                 return@withContext reject("unsupported file name")
             }
-            val requestedDirectory =
-                File(filesDirectory, RecordingFileProvider.RECORDING_DIRECTORY).absoluteFile
+            val requestedDirectory = File(filesDirectory, RecordingFileProvider.RECORDING_DIRECTORY)
             val directory = requestedDirectory.canonicalFile
-            val requestedFile = File(directory, recording.fileName).absoluteFile
-            val file = requestedFile.canonicalFile
-            if (directory.path != requestedDirectory.path || file.path != requestedFile.path || file.parentFile != directory) {
+            val file = File(directory, recording.fileName).canonicalFile
+            if (file.parentFile != directory) {
                 return@withContext reject("recording path rejected")
             }
             if (!file.isFile) {
