@@ -206,6 +206,65 @@ class VoiceAssetSyncWorkerTest {
         }
 
     @Test
+    fun transientNetworkLossBeforePartCommitResumesFromDurableCheckpoint() =
+        runBlocking {
+            val context = ApplicationProvider.getApplicationContext<Context>()
+            val application = context.applicationContext as VoiceAssetApplication
+            val recordingId = RecordingSessionId.parse(UUID.randomUUID().toString())
+            val profileId = ServerProfileId.parse(UUID.randomUUID().toString())
+            val profile = profile(profileId)
+            val bytes = ByteArray(PART_SIZE + 3) { index -> (index % 251).toByte() }
+            val file =
+                File(
+                    File(context.filesDir, "recordings").apply { mkdirs() },
+                    "${recordingId.value}.m4a",
+                )
+            file.writeBytes(bytes)
+            application.container.serverProfiles.save(profile)
+            application.container.credentials.write(
+                profileId,
+                "va_transient_network_token_with_sufficient_entropy".toByteArray(),
+            )
+            seedRecording(application, recordingId, profileId, file.name, bytes)
+            val fake =
+                FakeVoiceAssetApi(
+                    assetId = UUID.randomUUID().toString(),
+                    uploadId = UUID.randomUUID().toString(),
+                    jobId = UUID.randomUUID().toString(),
+                    fileBytes = bytes,
+                    recordedPartNumbers = mutableSetOf(1),
+                    disconnectBeforePartCommit = true,
+                )
+            TestVoiceAssetApplication.apiFactory = { _, _ -> fake }
+
+            fun worker() =
+                TestListenableWorkerBuilder<VoiceAssetSyncWorker>(context)
+                    .setInputData(
+                        workDataOf(VoiceAssetSyncWorker.RECORDING_SESSION_ID to recordingId.value),
+                    ).build()
+
+            try {
+                assertTrue(worker().doWork() is ListenableWorker.Result.Retry)
+                assertTrue(fake.uploadedPartNumbers.isEmpty())
+                assertEquals(
+                    SyncStage.UPLOAD_CREATED,
+                    requireNotNull(application.container.syncTasks.find(recordingId)).stage,
+                )
+
+                assertTrue(worker().doWork() is ListenableWorker.Result.Success)
+                assertEquals(listOf(2), fake.uploadedPartNumbers)
+                assertEquals(
+                    SyncStage.COMPLETE,
+                    requireNotNull(application.container.syncTasks.find(recordingId)).stage,
+                )
+            } finally {
+                file.delete()
+                application.container.credentials.remove(profileId)
+                application.container.serverProfiles.delete(profileId)
+            }
+        }
+
+    @Test
     fun uploadAndManualTranscriptionRunAsIndependentStages() =
         runBlocking {
             val context = ApplicationProvider.getApplicationContext<Context>()
@@ -485,6 +544,7 @@ private class FakeVoiceAssetApi(
     private val disconnectAfterAssetCommit: Boolean = false,
     private val disconnectAfterUploadCommit: Boolean = false,
     private val disconnectAfterPartCommit: Boolean = false,
+    private val disconnectBeforePartCommit: Boolean = false,
     private val incrementalSyncSupported: Boolean = false,
     private val contractVersion: String = "0.22.0",
     private val catalogPages: MutableList<AssetList> = mutableListOf(AssetList(emptyList())),
@@ -659,6 +719,10 @@ private class FakeVoiceAssetApi(
         bytes: ByteArray,
         partSha256: String,
     ): UploadPart {
+        if (disconnectBeforePartCommit && !partDisconnectDelivered) {
+            partDisconnectDelivered = true
+            disconnectBeforeCommit("part")
+        }
         uploadedPartNumbers += partNumber
         uploadedPartBytes += bytes.copyOf()
         assertEquals(bytes.sha256(), partSha256)
@@ -789,6 +853,12 @@ private class FakeVoiceAssetApi(
     private fun disconnectAfterCommit(operation: String): Nothing =
         throw VoiceAssetConnectionException(
             "connection lost after $operation commit",
+            IOException("simulated connection loss"),
+        )
+
+    private fun disconnectBeforeCommit(operation: String): Nothing =
+        throw VoiceAssetConnectionException(
+            "connection lost before $operation commit",
             IOException("simulated connection loss"),
         )
 
