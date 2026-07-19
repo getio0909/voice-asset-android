@@ -21,6 +21,7 @@ import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.administration.ProviderProfileFamily
+import com.voiceasset.android.playback.RecordingPlaybackDecoderMode
 import com.voiceasset.android.playback.RecordingPlaybackStatus
 import com.voiceasset.android.playback.RecordingPlaybackUiState
 import com.voiceasset.core.api.ProviderHealthStatus
@@ -53,6 +54,7 @@ class VoiceAssetAppTest {
         val optionalServerDescription = context.getString(R.string.add_server_profile_description)
 
         composeRule.setContent { VoiceAssetApp() }
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithText(initialized).assertIsDisplayed()
         composeRule.onNodeWithText(serverNotConfigured).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(localFirstDescription).performScrollTo().assertIsDisplayed()
@@ -69,13 +71,50 @@ class VoiceAssetAppTest {
             VoiceAssetApp(onLanguageSelected = { selectedLanguage = it })
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.onNodeWithTag(LANGUAGE_SELECTOR_TEST_TAG).performClick()
         composeRule.onNodeWithTag(LANGUAGE_CHINESE_TEST_TAG).performClick()
         composeRule.runOnIdle {
             assertEquals(AppLanguage.SIMPLIFIED_CHINESE, selectedLanguage)
         }
+        composeRule.onNodeWithTag(RECORDER_BACK_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithTag(RECORD_BUTTON_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithTag(RECORDER_WAVEFORM_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun recorderShellOffersSearchFiltersSettingsAndOneRecordAction() {
+        composeRule.setContent { VoiceAssetApp() }
+
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.settings_tab)).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORDER_BACK_TEST_TAG).performClick()
+        composeRule.onNodeWithText(context.getString(R.string.recordings_tab)).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORDER_SEARCH_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag("recording-filter").performClick()
+        composeRule.onNodeWithText(context.getString(R.string.recording_filter_all)).assertIsDisplayed()
+    }
+
+    @Test
+    fun settingsExposePlaybackDecoderChoices() {
+        var selectedDecoder: RecordingPlaybackDecoderMode? = null
+
+        composeRule.setContent {
+            VoiceAssetApp(
+                onPlaybackDecoderModeChanged = { selectedDecoder = it },
+            )
+        }
+
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
+        composeRule
+            .onNodeWithTag("playback-decoder-hardware")
+            .performScrollTo()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals(RecordingPlaybackDecoderMode.HARDWARE_PREFERRED, selectedDecoder)
+        }
     }
 
     @Test
@@ -118,6 +157,7 @@ class VoiceAssetAppTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule
             .onNodeWithTag(SESSION_RECONNECT_EMAIL_TEST_TAG)
             .performScrollTo()
@@ -200,6 +240,7 @@ class VoiceAssetAppTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
         composeRule
             .onNodeWithTag(REFRESH_DEVICE_SESSIONS_TEST_TAG)
@@ -413,6 +454,7 @@ class VoiceAssetAppTest {
             )
         }
 
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("field")
         composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "field" }

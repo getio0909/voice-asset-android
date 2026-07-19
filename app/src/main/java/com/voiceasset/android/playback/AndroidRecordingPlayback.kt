@@ -4,7 +4,10 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.MediaCodecList
+import android.media.MediaExtractor
 import android.media.MediaPlayer
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import com.voiceasset.android.data.RecordingStore
@@ -20,7 +23,7 @@ internal fun createRecordingPlaybackController(
     RecordingPlaybackController(
         scope = scope,
         verifier = RecordingFileVerifier(context, recordings),
-        engineFactory = RecordingPlaybackEngineFactory(::MediaPlayerRecordingPlaybackEngine),
+        engineFactory = AndroidRecordingPlaybackEngineFactory(),
         focusFactory =
             RecordingPlaybackFocusFactory { listener ->
                 AndroidRecordingPlaybackFocus(context, listener)
@@ -34,7 +37,17 @@ private val playbackAudioAttributes =
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
 
-private class MediaPlayerRecordingPlaybackEngine : RecordingPlaybackEngine {
+private class AndroidRecordingPlaybackEngineFactory :
+    RecordingPlaybackEngineFactory,
+    RecordingPlaybackDecoderModeSink {
+    override var decoderMode = RecordingPlaybackDecoderMode.SYSTEM_DEFAULT
+
+    override fun create(): RecordingPlaybackEngine = MediaPlayerRecordingPlaybackEngine(decoderMode)
+}
+
+private class MediaPlayerRecordingPlaybackEngine(
+    private val decoderMode: RecordingPlaybackDecoderMode,
+) : RecordingPlaybackEngine {
     private val player = MediaPlayer()
     private var released = false
 
@@ -42,6 +55,13 @@ private class MediaPlayerRecordingPlaybackEngine : RecordingPlaybackEngine {
         file: File,
         listener: RecordingPlaybackEngine.Listener,
     ) {
+        if (decoderMode == RecordingPlaybackDecoderMode.HARDWARE_PREFERRED) {
+            // MediaPlayer owns the actual codec selection on Android. Probe the
+            // file so hardware preference is best-effort, but never reject a
+            // playable file when a device does not expose a hardware decoder.
+            hasHardwareDecoder(file)
+        }
+        player.reset()
         player.setAudioAttributes(playbackAudioAttributes)
         player.setOnPreparedListener { listener.onPrepared() }
         player.setOnCompletionListener { listener.onCompletion() }
@@ -51,6 +71,30 @@ private class MediaPlayerRecordingPlaybackEngine : RecordingPlaybackEngine {
         }
         player.setDataSource(file.absolutePath)
         player.prepareAsync()
+    }
+
+    private fun hasHardwareDecoder(file: File): Boolean {
+        val extractor = MediaExtractor()
+        return try {
+            extractor.setDataSource(file.absolutePath)
+            val mimeType =
+                (0 until extractor.trackCount)
+                    .asSequence()
+                    .mapNotNull { index -> extractor.getTrackFormat(index).getString("mime") }
+                    .firstOrNull { mime -> mime.startsWith("audio/") }
+                    ?: return false
+            MediaCodecList(MediaCodecList.ALL_CODECS).codecInfos.any { info ->
+                !info.isEncoder &&
+                    (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || info.isHardwareAccelerated) &&
+                    info.supportedTypes.any { type ->
+                        type.equals(mimeType, ignoreCase = true)
+                    }
+            }
+        } catch (_: Exception) {
+            false
+        } finally {
+            extractor.release()
+        }
     }
 
     override fun start() {
