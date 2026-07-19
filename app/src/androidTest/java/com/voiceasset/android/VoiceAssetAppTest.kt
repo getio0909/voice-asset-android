@@ -470,9 +470,6 @@ class VoiceAssetAppTest {
         composeRule.runOnIdle {
             assertEquals(true, stoppedHiddenPlayback)
         }
-        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
-        composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("")
         composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "" }
         composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
@@ -500,6 +497,9 @@ class VoiceAssetAppTest {
         composeRule.runOnIdle {
             assertEquals("51000000-0000-4000-8000-000000000005", retriedRecordingId)
         }
+        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
+        composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
         composeRule
