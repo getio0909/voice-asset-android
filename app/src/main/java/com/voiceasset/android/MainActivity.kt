@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -35,6 +36,7 @@ import com.voiceasset.core.model.TranscriptionPolicy
 import com.voiceasset.core.model.UploadPolicy
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private val pairingScannerOptions =
@@ -76,6 +78,20 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+
+    override fun attachBaseContext(newBase: Context) {
+        val languageTag =
+            newBase
+                .getSharedPreferences(LANGUAGE_PREFERENCES, Context.MODE_PRIVATE)
+                .getString(LANGUAGE_KEY, null)
+        val localizedContext =
+            languageTag?.let { tag ->
+                val configuration = Configuration(newBase.resources.configuration)
+                configuration.setLocale(Locale.forLanguageTag(tag))
+                newBase.createConfigurationContext(configuration)
+            } ?: newBase
+        super.attachBaseContext(localizedContext)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,6 +152,8 @@ class MainActivity : ComponentActivity() {
             VoiceAssetApp(
                 uiState = uiState,
                 playbackState = playbackState,
+                language = AppLanguage.fromLocale(resources.configuration.locales[0]),
+                onLanguageSelected = ::selectLanguage,
                 onServerNameChanged = mainViewModel::updateServerName,
                 onServerUrlChanged = mainViewModel::updateServerUrl,
                 onServerEmailChanged = mainViewModel::updateServerEmail,
@@ -305,6 +323,14 @@ class MainActivity : ComponentActivity() {
         Toast.makeText(this, R.string.export_recording_unavailable, Toast.LENGTH_SHORT).show()
     }
 
+    private fun selectLanguage(language: AppLanguage) {
+        getSharedPreferences(LANGUAGE_PREFERENCES, Context.MODE_PRIVATE)
+            .edit()
+            .putString(LANGUAGE_KEY, language.languageTag)
+            .apply()
+        recreate()
+    }
+
     private fun scanPairingCode(onScanned: (String) -> Unit) {
         GmsBarcodeScanning
             .getClient(this, pairingScannerOptions)
@@ -314,5 +340,10 @@ class MainActivity : ComponentActivity() {
             }.addOnFailureListener {
                 Toast.makeText(this, R.string.pairing_scan_failed, Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private companion object {
+        const val LANGUAGE_PREFERENCES = "voiceasset_preferences"
+        const val LANGUAGE_KEY = "app_language"
     }
 }

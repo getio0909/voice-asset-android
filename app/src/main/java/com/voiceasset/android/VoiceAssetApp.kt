@@ -1,20 +1,25 @@
 package com.voiceasset.android
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -27,16 +32,25 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,6 +64,8 @@ import com.voiceasset.core.api.ProviderHealthStatus
 import com.voiceasset.core.api.ProviderProfileState
 import com.voiceasset.core.model.TranscriptionPolicy
 import com.voiceasset.core.model.UploadPolicy
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 internal const val OFFLINE_LIBRARY_SEARCH_TEST_TAG = "offline-library-search"
 internal const val ASSET_METADATA_TITLE_TEST_TAG = "asset-metadata-title"
@@ -74,12 +90,18 @@ internal const val SERVER_NAME_TEST_TAG = "server-name"
 internal const val SERVER_URL_TEST_TAG = "server-url"
 internal const val SERVER_EMAIL_TEST_TAG = "server-email"
 internal const val SERVER_PASSWORD_TEST_TAG = "server-password"
+internal const val RECORD_BUTTON_TEST_TAG = "record-button"
+internal const val RECORDER_WAVEFORM_TEST_TAG = "recorder-waveform"
+internal const val LANGUAGE_SELECTOR_TEST_TAG = "language-selector"
+internal const val LANGUAGE_CHINESE_TEST_TAG = "language-chinese"
 private const val MAX_MOBILE_ADMINISTRATION_JOBS = 10
 
 @Composable
 fun VoiceAssetApp(
     uiState: AppUiState = initialAppUiState(),
     playbackState: RecordingPlaybackUiState = RecordingPlaybackUiState(),
+    language: AppLanguage = AppLanguage.ENGLISH,
+    onLanguageSelected: (AppLanguage) -> Unit = {},
     onServerNameChanged: (String) -> Unit = {},
     onServerUrlChanged: (String) -> Unit = {},
     onServerEmailChanged: (String) -> Unit = {},
@@ -137,6 +159,8 @@ fun VoiceAssetApp(
                 VoiceAssetHomeScreen(
                     uiState = uiState,
                     playbackState = playbackState,
+                    language = language,
+                    onLanguageSelected = onLanguageSelected,
                     contentPadding = contentPadding,
                     onServerNameChanged = onServerNameChanged,
                     onServerUrlChanged = onServerUrlChanged,
@@ -193,10 +217,83 @@ fun VoiceAssetApp(
 }
 
 @Composable
+private fun RecorderTopBar(
+    language: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = stringResource(R.string.app_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        LanguageSelector(language = language, onLanguageSelected = onLanguageSelected)
+    }
+}
+
+@Composable
+private fun LanguageSelector(
+    language: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    Box {
+        OutlinedButton(
+            modifier = Modifier.testTag(LANGUAGE_SELECTOR_TEST_TAG),
+            onClick = { expanded = true },
+        ) {
+            Text(
+                text =
+                    stringResource(
+                        R.string.language_current,
+                        stringResource(
+                            if (language == AppLanguage.SIMPLIFIED_CHINESE) {
+                                R.string.language_chinese
+                            } else {
+                                R.string.language_english
+                            },
+                        ),
+                    ),
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.language_english)) },
+                onClick = {
+                    expanded = false
+                    onLanguageSelected(AppLanguage.ENGLISH)
+                },
+            )
+            DropdownMenuItem(
+                modifier = Modifier.testTag(LANGUAGE_CHINESE_TEST_TAG),
+                text = { Text(stringResource(R.string.language_chinese)) },
+                onClick = {
+                    expanded = false
+                    onLanguageSelected(AppLanguage.SIMPLIFIED_CHINESE)
+                },
+            )
+        }
+    }
+}
+
+@Composable
 private fun VoiceAssetHomeScreen(
     uiState: AppUiState,
     playbackState: RecordingPlaybackUiState,
     contentPadding: PaddingValues,
+    language: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
     onServerNameChanged: (String) -> Unit,
     onServerUrlChanged: (String) -> Unit,
     onServerEmailChanged: (String) -> Unit,
@@ -254,26 +351,20 @@ private fun VoiceAssetHomeScreen(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = stringResource(R.string.app_description),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        RecorderTopBar(
+            language = language,
+            onLanguageSelected = onLanguageSelected,
+        )
 
-        StatusCard(
-            label = stringResource(R.string.app_status),
-            value =
-                when (uiState.initializationStatus) {
-                    InitializationStatus.INITIALIZED -> stringResource(R.string.initialized)
-                },
-            supportingText = stringResource(R.string.initialized_description),
+        Text(
+            text = stringResource(R.string.initialized),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = stringResource(R.string.initialized_description),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         RecordingCard(
@@ -1714,96 +1805,146 @@ private fun RecordingCard(
     onResume: () -> Unit,
     onStop: () -> Unit,
 ) {
+    var elapsedMillis by rememberSaveable { mutableLongStateOf(0L) }
+    var showOptions by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(status) {
+        if (
+            status == RecordingUiStatus.READY ||
+            status == RecordingUiStatus.SAVED ||
+            status == RecordingUiStatus.FAILED ||
+            status == RecordingUiStatus.UNAVAILABLE
+        ) {
+            elapsedMillis = 0L
+        }
+        if (status == RecordingUiStatus.RECORDING) {
+            while (isActive) {
+                delay(250L)
+                elapsedMillis += 250L
+            }
+        }
+    }
+
+    val unavailableButtonDescription = stringResource(R.string.recording_unavailable)
+    val startButtonDescription = stringResource(R.string.start_recording)
+    val pauseButtonDescription = stringResource(R.string.pause_recording)
+    val resumeButtonDescription = stringResource(R.string.resume_recording)
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (status == RecordingUiStatus.RECORDING || status == RecordingUiStatus.PAUSED) {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+            ),
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(
-                text = stringResource(R.string.recording),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = stringResource(R.string.recording),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = stringResource(R.string.recording_local_first_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Text(
+                    text = recordingStatusText(status),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Text(
                 text = stringResource(R.string.recording_local_first_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                text = recordingStatusText(status),
-                style = MaterialTheme.typography.bodyLarge,
+                text = formatDuration(elapsedMillis),
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Light,
+            )
+            RecorderWaveform(
+                active = status == RecordingUiStatus.RECORDING,
+                elapsedMillis = elapsedMillis,
             )
             if (error != null) {
                 Text(
                     text = stringResource(R.string.recording_error_detail, error),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-            Text(
-                text = stringResource(R.string.recording_policy_overrides),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-            )
-            Text(
-                text = stringResource(R.string.recording_policy_overrides_description),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            val canChoosePolicies = status != RecordingUiStatus.UNAVAILABLE && status.allowsProfileSwitch()
-            PolicySelector(
-                label = stringResource(R.string.upload_policy),
-                value = uploadPolicyOverride,
-                options = listOf<UploadPolicy?>(null) + UploadPolicy.entries,
-                optionLabel = { policy ->
-                    policy?.let { uploadPolicyText(it) } ?: stringResource(R.string.server_default)
-                },
-                enabled = canChoosePolicies,
-                selectorTag = "recording_upload_policy_override",
-                onSelected = onUploadPolicyOverrideChanged,
-            )
-            PolicySelector(
-                label = stringResource(R.string.transcription_policy),
-                value = transcriptionPolicyOverride,
-                options =
-                    listOf<TranscriptionPolicy?>(null) +
-                        TranscriptionPolicy.entries.filterNot { policy ->
-                            policy == TranscriptionPolicy.REALTIME
-                        },
-                optionLabel = { policy ->
-                    policy?.let { transcriptionPolicyText(it) } ?: stringResource(R.string.server_default)
-                },
-                enabled = canChoosePolicies,
-                selectorTag = "recording_transcription_policy_override",
-                onSelected = onTranscriptionPolicyOverrideChanged,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 when (status) {
                     RecordingUiStatus.UNAVAILABLE ->
-                        Button(onClick = onStart, enabled = false) {
-                            Text(stringResource(R.string.start_recording))
+                        Button(
+                            modifier =
+                                Modifier
+                                    .size(96.dp)
+                                    .semantics { contentDescription = unavailableButtonDescription },
+                            shape = CircleShape,
+                            onClick = onStart,
+                            enabled = false,
+                        ) {
+                            Text("●", style = MaterialTheme.typography.headlineLarge)
                         }
                     RecordingUiStatus.READY,
                     RecordingUiStatus.SAVED,
                     RecordingUiStatus.FAILED,
                     ->
-                        Button(onClick = onStart) {
-                            Text(stringResource(R.string.start_recording))
+                        Button(
+                            modifier =
+                                Modifier
+                                    .size(96.dp)
+                                    .semantics { contentDescription = startButtonDescription },
+                            shape = CircleShape,
+                            onClick = onStart,
+                        ) {
+                            Text("●", style = MaterialTheme.typography.headlineLarge)
                         }
                     RecordingUiStatus.RECORDING -> {
-                        Button(onClick = onPause) {
-                            Text(stringResource(R.string.pause_recording))
+                        Button(
+                            modifier =
+                                Modifier
+                                    .size(82.dp)
+                                    .semantics { contentDescription = pauseButtonDescription },
+                            shape = CircleShape,
+                            onClick = onPause,
+                        ) {
+                            Text("Ⅱ", style = MaterialTheme.typography.headlineMedium)
                         }
                         OutlinedButton(onClick = onStop) {
                             Text(stringResource(R.string.stop_recording))
                         }
                     }
                     RecordingUiStatus.PAUSED -> {
-                        Button(onClick = onResume) {
-                            Text(stringResource(R.string.resume_recording))
+                        Button(
+                            modifier =
+                                Modifier
+                                    .size(82.dp)
+                                    .semantics { contentDescription = resumeButtonDescription },
+                            shape = CircleShape,
+                            onClick = onResume,
+                        ) {
+                            Text("▶", style = MaterialTheme.typography.headlineMedium)
                         }
                         OutlinedButton(onClick = onStop) {
                             Text(stringResource(R.string.stop_recording))
@@ -1811,15 +1952,106 @@ private fun RecordingCard(
                     }
                     RecordingUiStatus.PAUSING,
                     RecordingUiStatus.RESUMING,
-                    ->
+                    -> {
+                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
                         OutlinedButton(onClick = onStop) {
                             Text(stringResource(R.string.stop_recording))
                         }
+                    }
                     RecordingUiStatus.STARTING,
                     RecordingUiStatus.STOPPING,
-                    -> CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    -> CircularProgressIndicator(modifier = Modifier.size(32.dp))
                 }
             }
+            if (status == RecordingUiStatus.READY ||
+                status == RecordingUiStatus.SAVED ||
+                status == RecordingUiStatus.FAILED
+            ) {
+                Text(
+                    text = stringResource(R.string.start_recording_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = { showOptions = !showOptions }) {
+                Text(
+                    stringResource(
+                        if (showOptions) R.string.hide_recording_options else R.string.show_recording_options,
+                    ),
+                )
+            }
+            if (showOptions) {
+                Text(
+                    text = stringResource(R.string.recording_policy_overrides),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(R.string.recording_policy_overrides_description),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                val canChoosePolicies = status != RecordingUiStatus.UNAVAILABLE && status.allowsProfileSwitch()
+                PolicySelector(
+                    label = stringResource(R.string.upload_policy),
+                    value = uploadPolicyOverride,
+                    options = listOf<UploadPolicy?>(null) + UploadPolicy.entries,
+                    optionLabel = { policy ->
+                        policy?.let { uploadPolicyText(it) } ?: stringResource(R.string.server_default)
+                    },
+                    enabled = canChoosePolicies,
+                    selectorTag = "recording_upload_policy_override",
+                    onSelected = onUploadPolicyOverrideChanged,
+                )
+                PolicySelector(
+                    label = stringResource(R.string.transcription_policy),
+                    value = transcriptionPolicyOverride,
+                    options =
+                        listOf<TranscriptionPolicy?>(null) +
+                            TranscriptionPolicy.entries.filterNot { policy ->
+                                policy == TranscriptionPolicy.REALTIME
+                            },
+                    optionLabel = { policy ->
+                        policy?.let { transcriptionPolicyText(it) } ?: stringResource(R.string.server_default)
+                    },
+                    enabled = canChoosePolicies,
+                    selectorTag = "recording_transcription_policy_override",
+                    onSelected = onTranscriptionPolicyOverrideChanged,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecorderWaveform(
+    active: Boolean,
+    elapsedMillis: Long,
+) {
+    val phase = elapsedMillis / 250.0
+    val activeColor = MaterialTheme.colorScheme.primary
+    val idleColor = MaterialTheme.colorScheme.outlineVariant
+    Canvas(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .testTag(RECORDER_WAVEFORM_TEST_TAG),
+    ) {
+        val bars = 48
+        val gap = size.width / (bars * 2f)
+        val center = size.height / 2f
+        repeat(bars) { index ->
+            val wave = kotlin.math.abs(kotlin.math.sin(index * 0.9 + phase))
+            val height = size.height * (0.16f + wave.toFloat() * if (active) 0.72f else 0.38f)
+            drawRoundRect(
+                color = if (active) activeColor else idleColor,
+                topLeft = Offset(index * gap * 2f, center - height / 2f),
+                size = Size(gap, height),
+                cornerRadius = CornerRadius(gap / 2f),
+            )
         }
     }
 }
