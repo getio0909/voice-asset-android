@@ -246,24 +246,18 @@ class VoiceAssetAppTest {
             .onNodeWithTag(REFRESH_DEVICE_SESSIONS_TEST_TAG)
             .performScrollTo()
             .performClick()
-        repeat(4) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Revoke Tablet?").assertIsDisplayed()
+        composeRule.onNodeWithText("Revoke Tablet?").performScrollTo().assertIsDisplayed()
         composeRule.runOnIdle {
             assertEquals(true, refreshed)
             assertEquals(null, confirmedId)
         }
 
         composeRule.onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
-        repeat(2) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
@@ -456,7 +450,6 @@ class VoiceAssetAppTest {
             )
         }
 
-        composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("field")
         composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "field" }
@@ -469,10 +462,13 @@ class VoiceAssetAppTest {
         composeRule
             .onNodeWithTag("recording-stop-52000000-0000-4000-8000-000000000005")
             .performScrollTo()
+            .assertIsDisplayed()
             .performClick()
         composeRule.runOnIdle {
             assertEquals(true, stoppedHiddenPlayback)
         }
+        composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Language: en-US").assertIsDisplayed()
         composeRule
             .onNodeWithTag(REFRESH_MOBILE_ADMINISTRATION_TEST_TAG)
