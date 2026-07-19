@@ -109,7 +109,7 @@ class VoiceAssetAppTest {
 
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule
-            .onNodeWithTag("playback-decoder-hardware")
+            .onNodeWithTag("playback-decoder-hardware_preferred")
             .performScrollTo()
             .performClick()
         composeRule.runOnIdle {
@@ -253,6 +253,7 @@ class VoiceAssetAppTest {
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithText("Revoke Tablet?").assertIsDisplayed()
         composeRule.runOnIdle {
             assertEquals(true, refreshed)
@@ -267,6 +268,7 @@ class VoiceAssetAppTest {
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
+        composeRule.waitForIdle()
         composeRule.onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
         composeRule.runOnIdle {
             assertEquals(REMOTE_DEVICE_SESSION_ID, confirmedId)
@@ -464,7 +466,10 @@ class VoiceAssetAppTest {
         composeRule
             .onAllNodesWithText("Playback controls for a recording hidden by the current search.")
             .assertCountEquals(1)
-        composeRule.onNodeWithText("Stop playback").performScrollTo().performClick()
+        composeRule
+            .onNodeWithTag("recording-stop-52000000-0000-4000-8000-000000000005")
+            .performScrollTo()
+            .performClick()
         composeRule.runOnIdle {
             assertEquals(true, stoppedHiddenPlayback)
         }

@@ -1961,7 +1961,10 @@ private fun RecordingPlaybackActions(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            OutlinedButton(onClick = onStop) {
+            OutlinedButton(
+                modifier = Modifier.testTag("recording-stop-$recordingId"),
+                onClick = onStop,
+            ) {
                 Text(stringResource(R.string.stop_playback))
             }
         }
@@ -1970,7 +1973,10 @@ private fun RecordingPlaybackActions(
             OutlinedButton(onClick = onPause) {
                 Text(stringResource(R.string.pause_playback))
             }
-            OutlinedButton(onClick = onStop) {
+            OutlinedButton(
+                modifier = Modifier.testTag("recording-stop-$recordingId"),
+                onClick = onStop,
+            ) {
                 Text(stringResource(R.string.stop_playback))
             }
         }
@@ -1979,7 +1985,10 @@ private fun RecordingPlaybackActions(
             OutlinedButton(onClick = { onPlay(recordingId) }) {
                 Text(stringResource(R.string.resume_playback))
             }
-            OutlinedButton(onClick = onStop) {
+            OutlinedButton(
+                modifier = Modifier.testTag("recording-stop-$recordingId"),
+                onClick = onStop,
+            ) {
                 Text(stringResource(R.string.stop_playback))
             }
         }
