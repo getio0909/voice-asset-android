@@ -63,6 +63,7 @@ import com.voiceasset.core.model.SyncTask
 import com.voiceasset.core.model.TranscriptionPolicy
 import com.voiceasset.core.model.UploadPolicy
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -405,6 +406,7 @@ class MainViewModelTest {
                     remoteAssetSyncScheduler = remoteAssetSyncScheduler,
                     clock = { 1_000 },
                     idFactory = { profileId },
+                    ioDispatcher = Dispatchers.Unconfined,
                 )
 
             viewModel.updateServerName(" Test server ")
