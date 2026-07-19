@@ -62,6 +62,23 @@ class VoiceAssetAppTest {
     }
 
     @Test
+    fun recorderFirstSurfaceOffersLanguageSwitchAndNativeControls() {
+        var selectedLanguage: AppLanguage? = null
+
+        composeRule.setContent {
+            VoiceAssetApp(onLanguageSelected = { selectedLanguage = it })
+        }
+
+        composeRule.onNodeWithTag(LANGUAGE_SELECTOR_TEST_TAG).performClick()
+        composeRule.onNodeWithTag(LANGUAGE_CHINESE_TEST_TAG).performClick()
+        composeRule.runOnIdle {
+            assertEquals(AppLanguage.SIMPLIFIED_CHINESE, selectedLanguage)
+        }
+        composeRule.onNodeWithTag(RECORD_BUTTON_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORDER_WAVEFORM_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
     fun currentProfileCanBeReconnectedWithoutCreatingAnotherProfile() {
         var observedEmail = ""
         var observedPassword = ""
