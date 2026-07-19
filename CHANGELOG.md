@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. The format 
 
 ### Changed
 
+- Fixed the production `MediaRecorder` configuration order so the API 30+
+  privacy-sensitive flag is applied between `setAudioSource` and
+  `setOutputFormat`, as required by Android. Hosted Emulator instrumentation
+  now exercises the real recorder through pause/resume and verifies a readable
+  M4A with positive duration.
 - Accept semver prerelease tags for the matching Android base version and emit
   binary-mode SHA-256 entries so hosted release verification accepts APK/AAB
   checksums consistently with the other repositories.
