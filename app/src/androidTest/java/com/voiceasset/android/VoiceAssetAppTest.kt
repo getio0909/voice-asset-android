@@ -257,14 +257,20 @@ class VoiceAssetAppTest {
             assertEquals(null, confirmedId)
         }
 
-        composeRule.onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
+        composeRule
+            .onNodeWithTag(CANCEL_DEVICE_SESSION_REVOKE_TEST_TAG)
+            .performScrollTo()
+            .performClick()
         composeRule.waitForIdle()
         composeRule
             .onNodeWithTag(DEVICE_SESSION_REVOKE_TEST_TAG_PREFIX + REMOTE_DEVICE_SESSION_ID)
             .performScrollTo()
             .performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG).performClick()
+        composeRule
+            .onNodeWithTag(CONFIRM_DEVICE_SESSION_REVOKE_TEST_TAG)
+            .performScrollTo()
+            .performClick()
         composeRule.runOnIdle {
             assertEquals(REMOTE_DEVICE_SESSION_ID, confirmedId)
         }
@@ -471,7 +477,7 @@ class VoiceAssetAppTest {
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Language: en-US").assertIsDisplayed()
+        composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
         composeRule
             .onNodeWithTag(REFRESH_MOBILE_ADMINISTRATION_TEST_TAG)
             .performScrollTo()
