@@ -26,13 +26,13 @@ import java.util.UUID
 
 class ProcessRestartRecoveryTest {
     @Test
-    fun finalizedM4aRecoversAfterTargetProcessIsForceStopped() =
+    fun finalizedM4aRecoversAfterTargetProcessIsKilled() =
         runBlocking {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val context = instrumentation.targetContext
             val settings = context.getSharedPreferences(TEST_SETTINGS, Context.MODE_PRIVATE)
             settings.edit().putBoolean(ENABLE_STARTUP_RECOVERY, true).commit()
-            forceStop(instrumentation, context.packageName)
+            killBackgroundProcess(instrumentation, context.packageName)
 
             var scenario: ActivityScenario<MainActivity>? = null
             var outputFile: File? = null
@@ -78,7 +78,7 @@ class ProcessRestartRecoveryTest {
                 )
                 scenario.close()
                 scenario = null
-                forceStop(instrumentation, context.packageName)
+                killBackgroundProcess(instrumentation, context.packageName)
 
                 scenario = ActivityScenario.launch(MainActivity::class.java)
                 lateinit var restartedApplication: TestVoiceAssetApplication
@@ -101,16 +101,16 @@ class ProcessRestartRecoveryTest {
             } finally {
                 scenario?.close()
                 outputFile?.delete()
-                forceStop(instrumentation, context.packageName)
+                killBackgroundProcess(instrumentation, context.packageName)
                 settings.edit().remove(ENABLE_STARTUP_RECOVERY).commit()
             }
         }
 
-    private fun forceStop(
+    private fun killBackgroundProcess(
         instrumentation: android.app.Instrumentation,
         packageName: String,
     ) {
-        instrumentation.uiAutomation.executeShellCommand("am force-stop $packageName").close()
+        instrumentation.uiAutomation.executeShellCommand("am kill $packageName").close()
     }
 
     private fun File.sha256(): String {
