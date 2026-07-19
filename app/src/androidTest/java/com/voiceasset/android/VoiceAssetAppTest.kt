@@ -478,6 +478,31 @@ class VoiceAssetAppTest {
         composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("")
         composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "" }
+        composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
+        repeat(4) {
+            composeRule.onRoot().performTouchInput { swipeUp() }
+        }
+        composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Sync: Complete").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Transcript available offline").assertCountEquals(1)
+        composeRule
+            .onAllNodesWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
+            .assertCountEquals(1)
+        composeRule
+            .onNodeWithTag("recording-play-50000000-0000-4000-8000-000000000005")
+            .performScrollTo()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals("50000000-0000-4000-8000-000000000005", playedRecordingId)
+        }
+        composeRule.onNodeWithText("Export").performScrollTo().performClick()
+        composeRule.runOnIdle {
+            assertEquals("50000000-0000-4000-8000-000000000005", exportedRecordingId)
+        }
+        composeRule.onNodeWithText("Retry sync").performScrollTo().performClick()
+        composeRule.runOnIdle {
+            assertEquals("51000000-0000-4000-8000-000000000005", retriedRecordingId)
+        }
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
         composeRule
@@ -517,28 +542,6 @@ class VoiceAssetAppTest {
             assertEquals("60000000-0000-4000-8000-000000000006", editedAssetId)
             assertEquals("Renamed interview", metadataTitle)
             assertEquals(true, metadataSaved)
-        }
-        composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
-        repeat(4) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
-        composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
-        composeRule.onAllNodesWithText("Sync: Complete").assertCountEquals(1)
-        composeRule.onAllNodesWithText("Transcript available offline").assertCountEquals(1)
-        composeRule
-            .onAllNodesWithText("Upload: Manual (recording override) · Transcription: Disabled (recording override)")
-            .assertCountEquals(1)
-        composeRule.onNodeWithText("Play").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("50000000-0000-4000-8000-000000000005", playedRecordingId)
-        }
-        composeRule.onNodeWithText("Export").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("50000000-0000-4000-8000-000000000005", exportedRecordingId)
-        }
-        composeRule.onNodeWithText("Retry sync").performScrollTo().performClick()
-        composeRule.runOnIdle {
-            assertEquals("51000000-0000-4000-8000-000000000005", retriedRecordingId)
         }
         composeRule.onNodeWithText("Use this server").performScrollTo().performClick()
         composeRule.runOnIdle {
