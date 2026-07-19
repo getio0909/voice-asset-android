@@ -74,8 +74,8 @@ Build a release candidate with the repository-outside signing key configured:
 ```bash
 ./gradlew test ktlintCheck lintRelease assembleRelease bundleRelease \
   :app:cyclonedxDirectBom
-bash scripts/package-release.sh v0.1.0 dist-release
-bash scripts/verify-release.sh v0.1.0 dist-release
+bash scripts/package-release.sh v1.0.0 dist-release
+bash scripts/verify-release.sh v1.0.0 dist-release
 ```
 
 Set `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
