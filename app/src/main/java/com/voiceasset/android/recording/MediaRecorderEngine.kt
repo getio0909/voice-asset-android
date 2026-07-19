@@ -22,15 +22,15 @@ class MediaRecorderEngine(
                 onError(RecordingErrorCode.ENGINE_FAILURE)
             }
             mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                mediaRecorder.setPrivacySensitive(true)
+            }
             mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
             mediaRecorder.setAudioChannels(AUDIO_CHANNEL_COUNT)
             mediaRecorder.setAudioSamplingRate(AUDIO_SAMPLE_RATE_HZ)
             mediaRecorder.setAudioEncodingBitRate(AUDIO_BIT_RATE)
             mediaRecorder.setOutputFile(outputFile)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                mediaRecorder.setPrivacySensitive(true)
-            }
             mediaRecorder.prepare()
             mediaRecorder.start()
             recorder = mediaRecorder
