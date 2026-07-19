@@ -62,6 +62,10 @@ class ProcessRestartRecoveryTest {
                     )
                 val engine = MediaRecorderEngine(context)
                 val errors = mutableListOf<RecordingErrorCode>()
+                application.container.recordings.persist(
+                    RecordingState.Starting(session),
+                    System.currentTimeMillis(),
+                )
                 try {
                     engine.start(file) { error -> errors += error }
                     SystemClock.sleep(1_200)
