@@ -475,6 +475,8 @@ class VoiceAssetAppTest {
         }
         composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("")
+        composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "" }
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
