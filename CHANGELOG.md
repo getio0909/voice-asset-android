@@ -24,7 +24,9 @@ All notable changes to this project will be documented in this file. The format 
 - Recover valid MediaRecorder `.m4a` files after process death by probing
   duration and recomputing immutable file metadata; unreadable or empty media
   still becomes an explicit interrupted failure. JVM coverage now exercises
-  both the readable-M4A and failed-recovery paths.
+  both the readable-M4A and failed-recovery paths, and Hosted Emulator
+  instrumentation drives the recovery implementation with a real
+  MediaRecorder archive.
 - Gate immediate post-recording sync on the same readable Keystore session
   policy as process-start recovery. A configured but signed-out or unreadable
   Profile now leaves the finished recording local without scheduling a remote
