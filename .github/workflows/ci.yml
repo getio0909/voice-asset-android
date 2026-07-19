@@ -140,7 +140,17 @@ jobs:
           disable-animations: true
           # Invoke the wrapper through Bash because the repository checkout
           # intentionally does not rely on a committed executable bit.
-          script: bash ./gradlew connectedDebugAndroidTest --stacktrace
+          script: |
+            bash ./gradlew connectedDebugAndroidTest --stacktrace
+            bash ./gradlew connectedDebugAndroidTest \
+              '-Pandroid.testInstrumentationRunnerArguments.class=com.voiceasset.android.recording.ProcessDeathAcceptanceTest' \
+              '-Pandroid.testInstrumentationRunnerArguments.process_death_phase=seed' \
+              --stacktrace
+            adb shell am force-stop com.voiceasset.android
+            bash ./gradlew connectedDebugAndroidTest \
+              '-Pandroid.testInstrumentationRunnerArguments.class=com.voiceasset.android.recording.ProcessDeathAcceptanceTest' \
+              '-Pandroid.testInstrumentationRunnerArguments.process_death_phase=verify' \
+              --stacktrace
 
   dependency-review:
     if: github.event_name == 'pull_request'
