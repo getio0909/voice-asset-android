@@ -108,6 +108,7 @@ internal const val RECORDER_SETTINGS_TEST_TAG = "recorder-settings"
 internal const val RECORDER_BACK_TEST_TAG = "recorder-back"
 internal const val RECORD_FAB_TEST_TAG = "record-fab"
 internal const val RECORDING_ROW_TEST_TAG_PREFIX = "recording-row-"
+internal const val SERVER_PROFILE_SELECT_TEST_TAG_PREFIX = "server-profile-select-"
 private const val MAX_MOBILE_ADMINISTRATION_JOBS = 10
 private val RECORDER_ACCENT_RED = Color(0xFFFF4B55)
 
@@ -2393,6 +2394,7 @@ private fun ServerProfileCard(
             )
             if (!profile.isActive) {
                 OutlinedButton(
+                    modifier = Modifier.testTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + profile.id),
                     onClick = { onSelect(profile.id) },
                     enabled = canSwitch,
                 ) {

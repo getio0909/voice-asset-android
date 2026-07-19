@@ -540,7 +540,11 @@ class VoiceAssetAppTest {
             assertEquals("Renamed interview", metadataTitle)
             assertEquals(true, metadataSaved)
         }
-        composeRule.onNodeWithText("Use this server").performScrollTo().performClick()
+        composeRule
+            .onNodeWithTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
         composeRule.runOnIdle {
             assertEquals("93636d78-31f6-4349-899a-a87bb8bb6814", selectedProfileId)
         }
