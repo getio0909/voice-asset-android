@@ -19,8 +19,8 @@ For local builds, set those variables from a secure secret store and run:
 ```bash
 ./gradlew test ktlintCheck lintRelease assembleRelease bundleRelease \
   :app:cyclonedxDirectBom
-bash scripts/package-release.sh v0.1.0 dist-release
-bash scripts/verify-release.sh v0.1.0 dist-release
+bash scripts/package-release.sh v1.0.0 dist-release
+bash scripts/verify-release.sh v1.0.0 dist-release
 ```
 
 `verify-release.sh` checks package metadata, APK v1/v2/v3 signatures, AAB
