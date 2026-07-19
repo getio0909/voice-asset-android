@@ -5,6 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -446,31 +447,35 @@ private fun SearchIcon(modifier: Modifier = Modifier) {
 @Composable
 private fun SettingsIcon(modifier: Modifier = Modifier) {
     val iconColor = MaterialTheme.colorScheme.onSurface
+    val holeColor = MaterialTheme.colorScheme.surface
     Canvas(modifier) {
         val center = Offset(size.width / 2f, size.height / 2f)
-        val innerRadius = size.minDimension * 0.24f
         val outerRadius = size.minDimension * 0.42f
-        val stroke = 2f
+        val gearPath =
+            Path().apply {
+                repeat(16) { index ->
+                    val angle = -Math.PI / 2.0 + index * (Math.PI / 8.0)
+                    val radius = if (index % 2 == 0) outerRadius else outerRadius * 0.78f
+                    val point =
+                        Offset(
+                            x = center.x + kotlin.math.cos(angle).toFloat() * radius,
+                            y = center.y + kotlin.math.sin(angle).toFloat() * radius,
+                        )
+                    if (index == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
+                }
+                close()
+            }
+        drawPath(path = gearPath, color = iconColor)
+        drawCircle(
+            color = holeColor,
+            radius = size.minDimension * 0.17f,
+            center = center,
+        )
         drawCircle(
             color = iconColor,
-            radius = innerRadius,
+            radius = size.minDimension * 0.08f,
             center = center,
-            style = Stroke(width = stroke),
         )
-        repeat(8) { index ->
-            val angle = index * (Math.PI / 4.0)
-            val start =
-                Offset(
-                    x = center.x + kotlin.math.cos(angle).toFloat() * innerRadius,
-                    y = center.y + kotlin.math.sin(angle).toFloat() * innerRadius,
-                )
-            val end =
-                Offset(
-                    x = center.x + kotlin.math.cos(angle).toFloat() * outerRadius,
-                    y = center.y + kotlin.math.sin(angle).toFloat() * outerRadius,
-                )
-            drawLine(color = iconColor, start = start, end = end, strokeWidth = stroke, cap = StrokeCap.Round)
-        }
     }
 }
 
@@ -925,13 +930,104 @@ private fun RecorderSettingsCard(
     showRecordingNotification: Boolean,
     onShowRecordingNotificationChanged: (Boolean) -> Unit,
 ) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        SettingsIntroCard()
+        SettingsGroup(title = stringResource(R.string.settings_section_recording)) {
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_format),
+                values = listOf("M4A", "WAV", "3GP"),
+                selected = recordingFormat,
+                onSelected = onRecordingFormatChanged,
+                tagPrefix = "recording-format-",
+            )
+            HorizontalDivider()
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_sample_rate),
+                values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
+                selected = recordingSampleRate,
+                onSelected = onRecordingSampleRateChanged,
+                tagPrefix = "recording-sample-rate-",
+            )
+            HorizontalDivider()
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_bitrate),
+                values = listOf("128 kbps", "256 kbps", "320 kbps"),
+                selected = recordingBitrate,
+                onSelected = onRecordingBitrateChanged,
+                tagPrefix = "recording-bitrate-",
+            )
+            HorizontalDivider()
+            SettingChoiceRow(
+                label = stringResource(R.string.recording_channels),
+                values = listOf("Mono", "Stereo"),
+                selected = recordingChannels,
+                onSelected = onRecordingChannelsChanged,
+                tagPrefix = "recording-channels-",
+            )
+        }
+        SettingsGroup(title = stringResource(R.string.settings_section_playback)) {
+            PlaybackDecoderChoiceRow(
+                selected = playbackDecoderMode,
+                onSelected = onPlaybackDecoderModeChanged,
+            )
+        }
+        SettingsGroup(title = stringResource(R.string.settings_section_appearance)) {
+            SettingsValueRow(
+                label = stringResource(R.string.language_setting),
+                value =
+                    stringResource(
+                        R.string.language_current,
+                        stringResource(
+                            if (language == AppLanguage.SIMPLIFIED_CHINESE) {
+                                R.string.language_chinese
+                            } else {
+                                R.string.language_english
+                            },
+                        ),
+                    ),
+            ) {
+                LanguageSelector(
+                    language = language,
+                    onLanguageSelected = onLanguageSelected,
+                    compact = true,
+                )
+            }
+            HorizontalDivider()
+            SettingSwitchRow(
+                label = stringResource(R.string.dark_theme),
+                checked = darkTheme,
+                onCheckedChange = onDarkThemeChanged,
+            )
+        }
+        SettingsGroup(title = stringResource(R.string.settings_section_behavior)) {
+            SettingSwitchRow(
+                label = stringResource(R.string.auto_start_recording),
+                checked = autoStartRecording,
+                onCheckedChange = onAutoStartRecordingChanged,
+            )
+            HorizontalDivider()
+            SettingSwitchRow(
+                label = stringResource(R.string.recording_notification),
+                checked = showRecordingNotification,
+                onCheckedChange = onShowRecordingNotificationChanged,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsIntroCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(24.dp),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = stringResource(R.string.recorder_settings_title),
@@ -941,67 +1037,57 @@ private fun RecorderSettingsCard(
             Text(
                 text = stringResource(R.string.recorder_settings_description),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.language_setting), style = MaterialTheme.typography.bodyLarge)
-                LanguageSelector(
-                    language = language,
-                    onLanguageSelected = onLanguageSelected,
-                )
-            }
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_format),
-                values = listOf("M4A", "WAV", "3GP"),
-                selected = recordingFormat,
-                onSelected = onRecordingFormatChanged,
-                tagPrefix = "recording-format-",
-            )
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_sample_rate),
-                values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
-                selected = recordingSampleRate,
-                onSelected = onRecordingSampleRateChanged,
-                tagPrefix = "recording-sample-rate-",
-            )
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_bitrate),
-                values = listOf("128 kbps", "256 kbps", "320 kbps"),
-                selected = recordingBitrate,
-                onSelected = onRecordingBitrateChanged,
-                tagPrefix = "recording-bitrate-",
-            )
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_channels),
-                values = listOf("Mono", "Stereo"),
-                selected = recordingChannels,
-                onSelected = onRecordingChannelsChanged,
-                tagPrefix = "recording-channels-",
-            )
-            PlaybackDecoderChoiceRow(
-                selected = playbackDecoderMode,
-                onSelected = onPlaybackDecoderModeChanged,
-            )
-            SettingSwitchRow(
-                label = stringResource(R.string.dark_theme),
-                checked = darkTheme,
-                onCheckedChange = onDarkThemeChanged,
-            )
-            SettingSwitchRow(
-                label = stringResource(R.string.auto_start_recording),
-                checked = autoStartRecording,
-                onCheckedChange = onAutoStartRecordingChanged,
-            )
-            SettingSwitchRow(
-                label = stringResource(R.string.recording_notification),
-                checked = showRecordingNotification,
-                onCheckedChange = onShowRecordingNotificationChanged,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
+    }
+}
+
+@Composable
+private fun SettingsGroup(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        shape = RoundedCornerShape(24.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+private fun SettingsValueRow(
+    label: String,
+    value: String,
+    control: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        control()
     }
 }
 

@@ -21,6 +21,10 @@
     <string name="recording_sort_duration">Duration</string>
     <string name="recorder_settings_title">Recording settings</string>
     <string name="recorder_settings_description">Choose the local audio profile before you record. These settings do not require a server.</string>
+    <string name="settings_section_recording">Recording</string>
+    <string name="settings_section_playback">Playback</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_behavior">Recording behavior</string>
     <string name="recording_format">Audio format</string>
     <string name="recording_sample_rate">Sample rate</string>
     <string name="recording_bitrate">Bitrate</string>

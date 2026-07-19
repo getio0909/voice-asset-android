@@ -21,6 +21,10 @@
     <string name="recording_sort_duration">时长</string>
     <string name="recorder_settings_title">录音设置</string>
     <string name="recorder_settings_description">录音前选择本地音频配置，不需要连接服务器。</string>
+    <string name="settings_section_recording">录音</string>
+    <string name="settings_section_playback">播放</string>
+    <string name="settings_section_appearance">界面</string>
+    <string name="settings_section_behavior">录音行为</string>
     <string name="recording_format">音频格式</string>
     <string name="recording_sample_rate">采样率</string>
     <string name="recording_bitrate">码率</string>
