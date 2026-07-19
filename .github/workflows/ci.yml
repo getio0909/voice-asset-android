@@ -142,15 +142,9 @@ jobs:
           # intentionally does not rely on a committed executable bit.
           script: |
             bash ./gradlew connectedDebugAndroidTest --stacktrace
-            bash ./gradlew connectedDebugAndroidTest \
-              '-Pandroid.testInstrumentationRunnerArguments.class=com.voiceasset.android.recording.ProcessDeathAcceptanceTest' \
-              '-Pandroid.testInstrumentationRunnerArguments.process_death_phase=seed' \
-              --stacktrace
+            bash ./gradlew connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.voiceasset.android.recording.ProcessDeathAcceptanceTest' '-Pandroid.testInstrumentationRunnerArguments.process_death_phase=seed' --stacktrace
             adb shell am force-stop com.voiceasset.android
-            bash ./gradlew connectedDebugAndroidTest \
-              '-Pandroid.testInstrumentationRunnerArguments.class=com.voiceasset.android.recording.ProcessDeathAcceptanceTest' \
-              '-Pandroid.testInstrumentationRunnerArguments.process_death_phase=verify' \
-              --stacktrace
+            bash ./gradlew connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=com.voiceasset.android.recording.ProcessDeathAcceptanceTest' '-Pandroid.testInstrumentationRunnerArguments.process_death_phase=verify' --stacktrace
 
   dependency-review:
     if: github.event_name == 'pull_request'
