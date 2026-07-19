@@ -11,13 +11,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.voiceasset.android.administration.ProviderProfileFamily
@@ -479,9 +476,6 @@ class VoiceAssetAppTest {
         composeRule.onNodeWithTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG).performTextReplacement("")
         composeRule.waitUntil(timeoutMillis = 5_000) { searchQuery == "" }
         composeRule.onAllNodesWithText("Duration: 1:05").assertCountEquals(2)
-        repeat(4) {
-            composeRule.onRoot().performTouchInput { swipeUp() }
-        }
         composeRule.onAllNodesWithText("field-note.m4a").assertCountEquals(1)
         composeRule.onAllNodesWithText("Sync: Complete").assertCountEquals(1)
         composeRule.onAllNodesWithText("Transcript available offline").assertCountEquals(1)
@@ -491,6 +485,7 @@ class VoiceAssetAppTest {
         composeRule
             .onNodeWithTag("recording-play-50000000-0000-4000-8000-000000000005")
             .performScrollTo()
+            .assertIsDisplayed()
             .performClick()
         composeRule.runOnIdle {
             assertEquals("50000000-0000-4000-8000-000000000005", playedRecordingId)
