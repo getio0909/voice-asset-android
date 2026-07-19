@@ -146,6 +146,7 @@ class ServerProfileFormTest {
     fun acceptsMaskedOneTimePairingPayloadAndRequestsPairing() {
         var state by mutableStateOf(initialAppUiState())
         var pairingRequested = false
+        var scanRequested = false
         val payload = "voiceasset://pair?secret=va_pair_${"A".repeat(43)}"
         composeRule.setContent {
             VoiceAssetApp(
@@ -154,9 +155,14 @@ class ServerProfileFormTest {
                     state = state.copy(serverDraft = state.serverDraft.copy(pairingPayload = SecretInput.of(value)))
                 },
                 onPairServer = { pairingRequested = true },
+                onScanPairingCode = { scanRequested = true },
             )
         }
 
+        composeRule
+            .onNodeWithTag(SCAN_PAIRING_TEST_TAG)
+            .performScrollTo()
+            .performClick()
         composeRule
             .onNodeWithTag(PAIRING_PAYLOAD_TEST_TAG)
             .performScrollTo()
@@ -168,6 +174,7 @@ class ServerProfileFormTest {
             .performClick()
 
         assertEquals(payload, state.serverDraft.pairingPayload.value)
+        assertTrue(scanRequested)
         assertTrue(pairingRequested)
     }
 }

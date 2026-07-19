@@ -68,6 +68,7 @@ internal const val PROVIDER_PROFILE_ACTION_TEST_TAG_PREFIX = "provider-profile-a
 internal const val PROVIDER_PROFILE_HEALTH_TEST_TAG_PREFIX = "provider-profile-health-"
 internal const val ADMINISTRATION_JOB_RETRY_TEST_TAG_PREFIX = "administration-job-retry-"
 internal const val PAIRING_PAYLOAD_TEST_TAG = "pairing-payload"
+internal const val SCAN_PAIRING_TEST_TAG = "scan-pairing"
 internal const val PAIR_SERVER_TEST_TAG = "pair-server"
 internal const val SERVER_NAME_TEST_TAG = "server-name"
 internal const val SERVER_URL_TEST_TAG = "server-url"
@@ -92,6 +93,7 @@ fun VoiceAssetApp(
     onRecordingTranscriptionPolicyOverrideChanged: (TranscriptionPolicy?) -> Unit = {},
     onSaveServer: () -> Unit = {},
     onPairServer: () -> Unit = {},
+    onScanPairingCode: () -> Unit = {},
     onServerSelected: (String) -> Unit = {},
     onOfflineLibrarySearchQueryChanged: (String) -> Unit = {},
     onClearOfflineLibrarySearch: () -> Unit = {},
@@ -150,6 +152,7 @@ fun VoiceAssetApp(
                     onRecordingTranscriptionPolicyOverrideChanged,
                     onSaveServer = onSaveServer,
                     onPairServer = onPairServer,
+                    onScanPairingCode = onScanPairingCode,
                     onServerSelected = onServerSelected,
                     onOfflineLibrarySearchQueryChanged = onOfflineLibrarySearchQueryChanged,
                     onClearOfflineLibrarySearch = onClearOfflineLibrarySearch,
@@ -207,6 +210,7 @@ private fun VoiceAssetHomeScreen(
     onRecordingTranscriptionPolicyOverrideChanged: (TranscriptionPolicy?) -> Unit,
     onSaveServer: () -> Unit,
     onPairServer: () -> Unit,
+    onScanPairingCode: () -> Unit,
     onServerSelected: (String) -> Unit,
     onOfflineLibrarySearchQueryChanged: (String) -> Unit,
     onClearOfflineLibrarySearch: () -> Unit,
@@ -397,6 +401,7 @@ private fun VoiceAssetHomeScreen(
             onTranscriptionPolicyChanged = onTranscriptionPolicyChanged,
             onSave = onSaveServer,
             onPair = onPairServer,
+            onScan = onScanPairingCode,
         )
     }
 }
@@ -1852,6 +1857,7 @@ private fun ServerProfileForm(
     onTranscriptionPolicyChanged: (TranscriptionPolicy) -> Unit,
     onSave: () -> Unit,
     onPair: () -> Unit,
+    onScan: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
@@ -1952,6 +1958,13 @@ private fun ServerProfileForm(
             maxLines = 4,
             enabled = !isSaving,
         )
+        OutlinedButton(
+            onClick = onScan,
+            modifier = Modifier.testTag(SCAN_PAIRING_TEST_TAG),
+            enabled = !isSaving,
+        ) {
+            Text(stringResource(R.string.scan_pairing_code))
+        }
         Button(
             onClick = onPair,
             modifier = Modifier.testTag(PAIR_SERVER_TEST_TAG),

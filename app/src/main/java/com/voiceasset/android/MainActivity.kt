@@ -17,6 +17,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.voiceasset.android.administration.ApiMobileAdministration
 import com.voiceasset.android.asset.ApiAssetMetadataEditor
 import com.voiceasset.android.export.RecordingExporter
@@ -34,6 +37,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private val pairingScannerOptions =
+        GmsBarcodeScannerOptions
+            .Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
     private var pendingRecordingRequest: PendingRecordingRequest? = null
     private lateinit var recordingPlayback: RecordingPlaybackController
     private var noisyReceiverRegistered = false
@@ -141,6 +150,9 @@ class MainActivity : ComponentActivity() {
                     mainViewModel::updateRecordingTranscriptionPolicyOverride,
                 onSaveServer = mainViewModel::saveServerProfile,
                 onPairServer = mainViewModel::pairServerProfile,
+                onScanPairingCode = {
+                    scanPairingCode(mainViewModel::updatePairingPayload)
+                },
                 onServerSelected = mainViewModel::selectServerProfile,
                 onOfflineLibrarySearchQueryChanged = mainViewModel::updateOfflineLibrarySearchQuery,
                 onClearOfflineLibrarySearch = mainViewModel::clearOfflineLibrarySearch,
@@ -291,5 +303,16 @@ class MainActivity : ComponentActivity() {
 
     private fun showExportUnavailable() {
         Toast.makeText(this, R.string.export_recording_unavailable, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun scanPairingCode(onScanned: (String) -> Unit) {
+        GmsBarcodeScanning
+            .getClient(this, pairingScannerOptions)
+            .startScan()
+            .addOnSuccessListener { barcode ->
+                barcode.rawValue?.takeIf(String::isNotBlank)?.let(onScanned)
+            }.addOnFailureListener {
+                Toast.makeText(this, R.string.pairing_scan_failed, Toast.LENGTH_SHORT).show()
+            }
     }
 }

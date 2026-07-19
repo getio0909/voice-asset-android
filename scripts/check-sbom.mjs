@@ -20,7 +20,21 @@ for (const required of ['androidx.activity:activity-compose', 'androidx.compose.
   }
 }
 
-const allowedLicense = /(apache|\bmit\b|\bbsd\b|eclipse public|\bepl\b|unicode|icu|public domain)/i
+const allowedLicense = new RegExp(
+  [
+    'apache',
+    '\\bmit\\b',
+    '\\bbsd\\b',
+    'eclipse public',
+    '\\bepl\\b',
+    'unicode',
+    'icu',
+    'public domain',
+    'android software development kit',
+    'ml kit terms of service',
+  ].join('|'),
+  'i',
+)
 const rootGroup = bom.metadata?.component?.group
 const isLocalProjectComponent = (component) => {
   const group = component.group

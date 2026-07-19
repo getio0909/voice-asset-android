@@ -105,9 +105,11 @@ device instrumentation gates.
 Install the newest debug APK over the existing debug build. First leave the
 server form blank, launch with network disabled, record at least ten seconds,
 stop, play, and export the local file. Then optionally test synchronization
-against `https://api.getio.net:10443` with custom CA left blank. Prefer the
-one-time pairing URI created on the Console **Device sessions** page; pairing
-does not require entering an account password in Android. Confirm that the new
+against `https://api.getio.net:10443` with custom CA left blank. Prefer scanning
+the QR code for the one-time pairing URI created on the Console **Device
+sessions** page; you can also paste it when the device has no Google Play
+services. Pairing does not require entering an account password in Android.
+Confirm that the new
 Profile shows **This device**, restore connectivity, and verify upload plus
 transcript sync.
 
