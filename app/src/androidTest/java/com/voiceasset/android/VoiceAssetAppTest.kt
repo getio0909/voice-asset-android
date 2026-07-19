@@ -500,6 +500,17 @@ class VoiceAssetAppTest {
         composeRule.onNodeWithTag(RECORD_FAB_TEST_TAG).performClick()
         composeRule.onNodeWithText("Cached offline transcript").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Language: en-US").performScrollTo().assertIsDisplayed()
+        composeRule
+            .onNodeWithTag(SERVER_PROFILE_CARD_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule
+            .onNodeWithTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
+            .assertIsDisplayed()
+            .performClick()
+        composeRule.runOnIdle {
+            assertEquals("93636d78-31f6-4349-899a-a87bb8bb6814", selectedProfileId)
+        }
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
         composeRule.waitForIdle()
         composeRule
@@ -539,17 +550,6 @@ class VoiceAssetAppTest {
             assertEquals("60000000-0000-4000-8000-000000000006", editedAssetId)
             assertEquals("Renamed interview", metadataTitle)
             assertEquals(true, metadataSaved)
-        }
-        composeRule
-            .onNodeWithTag(SERVER_PROFILE_CARD_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
-            .performScrollTo()
-            .assertIsDisplayed()
-        composeRule
-            .onNodeWithTag(SERVER_PROFILE_SELECT_TEST_TAG_PREFIX + "93636d78-31f6-4349-899a-a87bb8bb6814")
-            .assertIsDisplayed()
-            .performClick()
-        composeRule.runOnIdle {
-            assertEquals("93636d78-31f6-4349-899a-a87bb8bb6814", selectedProfileId)
         }
     }
 }
