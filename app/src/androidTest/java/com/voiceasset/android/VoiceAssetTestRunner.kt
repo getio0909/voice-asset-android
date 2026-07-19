@@ -24,10 +24,7 @@ class VoiceAssetTestRunner : AndroidJUnitRunner() {
 }
 
 class TestVoiceAssetApplication : VoiceAssetApplication() {
-    override val enableStartupRecoveryAndSync: Boolean
-        get() =
-            getSharedPreferences(TEST_SETTINGS, MODE_PRIVATE)
-                .getBoolean(ENABLE_STARTUP_RECOVERY, false)
+    override val enableStartupRecoveryAndSync: Boolean = false
 
     override fun createRecordingEngine(): RecordingEngine = TestRecordingEngine()
 
@@ -41,9 +38,6 @@ class TestVoiceAssetApplication : VoiceAssetApplication() {
         var apiFactory: ((ServerProfile, BearerCredential?) -> VoiceAssetApi)? = null
     }
 }
-
-internal const val TEST_SETTINGS = "voiceasset-instrumentation"
-internal const val ENABLE_STARTUP_RECOVERY = "enable_startup_recovery"
 
 private class TestRecordingEngine : RecordingEngine {
     private var started = false

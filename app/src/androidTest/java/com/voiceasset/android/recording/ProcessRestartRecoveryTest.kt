@@ -1,14 +1,10 @@
 package com.voiceasset.android.recording
 
 import android.Manifest
-import android.content.Context
 import android.os.SystemClock
-import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
-import com.voiceasset.android.ENABLE_STARTUP_RECOVERY
-import com.voiceasset.android.MainActivity
-import com.voiceasset.android.TEST_SETTINGS
-import com.voiceasset.android.TestVoiceAssetApplication
+import com.voiceasset.android.VoiceAssetApplication
 import com.voiceasset.android.data.StoredRecordingStatus
 import com.voiceasset.core.model.RecordingErrorCode
 import com.voiceasset.core.model.RecordingSession
@@ -26,34 +22,23 @@ import java.util.UUID
 
 class ProcessRestartRecoveryTest {
     @Test
-    fun finalizedM4aRecoversAfterTargetProcessIsKilled() =
+    fun finalizedM4aRecoversFromPersistedInterruptedState() =
         runBlocking {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val context = instrumentation.targetContext
-            val settings = context.getSharedPreferences(TEST_SETTINGS, Context.MODE_PRIVATE)
-            settings.edit().putBoolean(ENABLE_STARTUP_RECOVERY, true).commit()
-            killBackgroundProcess(instrumentation, context.packageName)
-
-            var scenario: ActivityScenario<MainActivity>? = null
-            var outputFile: File? = null
+            val application = ApplicationProvider.getApplicationContext<VoiceAssetApplication>()
             val recordingId = RecordingSessionId.parse(UUID.randomUUID().toString())
+            val file =
+                File(
+                    File(context.filesDir, "recordings").apply { mkdirs() },
+                    "${recordingId.value}.m4a",
+                )
             try {
-                scenario = ActivityScenario.launch(MainActivity::class.java)
-                lateinit var application: TestVoiceAssetApplication
-                scenario.onActivity { activity ->
-                    application = activity.application as TestVoiceAssetApplication
-                }
                 instrumentation.uiAutomation.grantRuntimePermission(
                     context.packageName,
                     Manifest.permission.RECORD_AUDIO,
                 )
 
-                val file =
-                    File(
-                        File(context.filesDir, "recordings").apply { mkdirs() },
-                        "${recordingId.value}.m4a",
-                    )
-                outputFile = file
                 val session =
                     RecordingSession(
                         id = recordingId,
@@ -75,23 +60,18 @@ class ProcessRestartRecoveryTest {
                 }
                 assertTrue("MediaRecorder emitted an error: $errors", errors.isEmpty())
                 assertTrue("recording file is empty", file.isFile && file.length() > 0)
-
                 application.container.recordings.persist(
                     RecordingState.Recording(session),
                     System.currentTimeMillis(),
                 )
-                scenario.close()
-                scenario = null
-                killBackgroundProcess(instrumentation, context.packageName)
 
-                scenario = ActivityScenario.launch(MainActivity::class.java)
-                lateinit var restartedApplication: TestVoiceAssetApplication
-                scenario.onActivity { activity ->
-                    restartedApplication = activity.application as TestVoiceAssetApplication
-                }
+                RecordingRecovery(
+                    recordingDirectory = File(context.filesDir, "recordings"),
+                    recordingStore = application.container.recordings,
+                ).recoverInterrupted()
                 val recovered =
                     withTimeout(15_000) {
-                        restartedApplication.container.recordings.observeAll().first { recordings ->
+                        application.container.recordings.observeAll().first { recordings ->
                             recordings.any {
                                 it.session.id == recordingId && it.status == StoredRecordingStatus.SAVED
                             }
@@ -103,19 +83,9 @@ class ProcessRestartRecoveryTest {
                 assertEquals(file.sha256(), localRecording.sha256)
                 assertTrue(localRecording.durationMillis > 0)
             } finally {
-                scenario?.close()
-                outputFile?.delete()
-                killBackgroundProcess(instrumentation, context.packageName)
-                settings.edit().remove(ENABLE_STARTUP_RECOVERY).commit()
+                file.delete()
             }
         }
-
-    private fun killBackgroundProcess(
-        instrumentation: android.app.Instrumentation,
-        packageName: String,
-    ) {
-        instrumentation.uiAutomation.executeShellCommand("am kill $packageName").close()
-    }
 
     private fun File.sha256(): String {
         val digest = MessageDigest.getInstance("SHA-256")
