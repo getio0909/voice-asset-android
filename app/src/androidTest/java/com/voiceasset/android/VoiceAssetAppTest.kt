@@ -69,7 +69,10 @@ class VoiceAssetAppTest {
         }
 
         composeRule.onNodeWithTag(RECORDER_SETTINGS_TEST_TAG).performClick()
-        composeRule.onNodeWithTag(LANGUAGE_SELECTOR_TEST_TAG).performClick()
+        composeRule
+            .onNodeWithTag(LANGUAGE_SELECTOR_TEST_TAG)
+            .performScrollTo()
+            .performClick()
         composeRule.onNodeWithTag(LANGUAGE_CHINESE_TEST_TAG).performClick()
         composeRule.runOnIdle {
             assertEquals(AppLanguage.SIMPLIFIED_CHINESE, selectedLanguage)

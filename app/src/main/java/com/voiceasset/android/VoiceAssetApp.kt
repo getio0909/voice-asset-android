@@ -5,6 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +55,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -111,7 +115,7 @@ internal const val RECORDING_ROW_TEST_TAG_PREFIX = "recording-row-"
 internal const val SERVER_PROFILE_CARD_TEST_TAG_PREFIX = "server-profile-card-"
 internal const val SERVER_PROFILE_SELECT_TEST_TAG_PREFIX = "server-profile-select-"
 private const val MAX_MOBILE_ADMINISTRATION_JOBS = 10
-private val RECORDER_ACCENT_RED = Color(0xFFFF4B55)
+private val RECORDER_ACCENT_RED = Color(0xFFB84E4E)
 
 private enum class RecorderSection {
     RECORD,
@@ -241,7 +245,7 @@ fun VoiceAssetApp(
                             containerColor = RECORDER_ACCENT_RED,
                             contentColor = Color.White,
                         ) {
-                            Text("●", style = MaterialTheme.typography.titleLarge)
+                            MicrophoneIcon(modifier = Modifier.size(28.dp))
                         }
                     }
                 },
@@ -337,6 +341,10 @@ private fun RecorderAppBar(
     val settingsDescription = stringResource(R.string.open_settings_description)
 
     TopAppBar(
+        colors =
+            androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
         navigationIcon = {
             if (section != RecorderSection.RECORDINGS) {
                 IconButton(
@@ -346,7 +354,7 @@ private fun RecorderAppBar(
                             .semantics { contentDescription = backDescription },
                     onClick = onBack,
                 ) {
-                    Text("‹", style = MaterialTheme.typography.headlineMedium)
+                    BackIcon(modifier = Modifier.size(24.dp))
                 }
             }
         },
@@ -375,7 +383,7 @@ private fun RecorderAppBar(
                             },
                     onClick = onSearch,
                 ) {
-                    Text("⌕", style = MaterialTheme.typography.titleLarge)
+                    SearchIcon(modifier = Modifier.size(22.dp))
                 }
             }
             if (section != RecorderSection.SETTINGS) {
@@ -386,11 +394,261 @@ private fun RecorderAppBar(
                             .semantics { contentDescription = settingsDescription },
                     onClick = onOpenSettings,
                 ) {
-                    Text("⚙", style = MaterialTheme.typography.titleLarge)
+                    SettingsIcon(modifier = Modifier.size(22.dp))
                 }
             }
         },
     )
+}
+
+@Composable
+private fun BackIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier) {
+        val stroke = 2.2f
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.78f, size.height * 0.18f),
+            end = Offset(size.width * 0.28f, size.height * 0.5f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.28f, size.height * 0.5f),
+            end = Offset(size.width * 0.78f, size.height * 0.82f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun SearchIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier) {
+        val stroke = 2.2f
+        drawCircle(
+            color = iconColor,
+            radius = size.minDimension * 0.31f,
+            center = Offset(size.width * 0.42f, size.height * 0.42f),
+            style = Stroke(width = stroke),
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.65f, size.height * 0.65f),
+            end = Offset(size.width * 0.88f, size.height * 0.88f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun SettingsIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onSurface
+    val holeColor = MaterialTheme.colorScheme.surface
+    Canvas(modifier) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val outerRadius = size.minDimension * 0.42f
+        val gearPath =
+            Path().apply {
+                repeat(16) { index ->
+                    val angle = -Math.PI / 2.0 + index * (Math.PI / 8.0)
+                    val radius = if (index % 2 == 0) outerRadius else outerRadius * 0.78f
+                    val point =
+                        Offset(
+                            x = center.x + kotlin.math.cos(angle).toFloat() * radius,
+                            y = center.y + kotlin.math.sin(angle).toFloat() * radius,
+                        )
+                    if (index == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
+                }
+                close()
+            }
+        drawPath(path = gearPath, color = iconColor)
+        drawCircle(
+            color = holeColor,
+            radius = size.minDimension * 0.17f,
+            center = center,
+        )
+        drawCircle(
+            color = iconColor,
+            radius = size.minDimension * 0.08f,
+            center = center,
+        )
+    }
+}
+
+@Composable
+private fun SettingsMicrophoneIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier) {
+        val stroke = (size.minDimension * 0.1f).coerceAtLeast(1.5f)
+        drawRoundRect(
+            color = iconColor,
+            topLeft = Offset(size.width * 0.35f, size.height * 0.1f),
+            size = Size(size.width * 0.3f, size.height * 0.5f),
+            cornerRadius = CornerRadius(size.width * 0.15f, size.width * 0.15f),
+        )
+        drawArc(
+            color = iconColor,
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(size.width * 0.2f, size.height * 0.3f),
+            size = Size(size.width * 0.6f, size.height * 0.5f),
+            style = Stroke(width = stroke),
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.5f, size.height * 0.8f),
+            end = Offset(size.width * 0.5f, size.height * 0.94f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.3f, size.height * 0.94f),
+            end = Offset(size.width * 0.7f, size.height * 0.94f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun AppearanceIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(
+            color = iconColor,
+            radius = size.minDimension * 0.22f,
+            center = center,
+        )
+        repeat(8) { index ->
+            val angle = index * (Math.PI / 4.0)
+            val inner = size.minDimension * 0.34f
+            val outer = size.minDimension * 0.46f
+            drawLine(
+                color = iconColor,
+                start = Offset(center.x + kotlin.math.cos(angle).toFloat() * inner, center.y + kotlin.math.sin(angle).toFloat() * inner),
+                end = Offset(center.x + kotlin.math.cos(angle).toFloat() * outer, center.y + kotlin.math.sin(angle).toFloat() * outer),
+                strokeWidth = size.minDimension * 0.09f,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TuneIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier) {
+        val stroke = size.minDimension * 0.1f
+        val tracks = listOf(0.25f, 0.5f, 0.75f)
+        val knobs = listOf(0.65f, 0.35f, 0.58f)
+        tracks.forEachIndexed { index, yFraction ->
+            drawLine(
+                color = iconColor,
+                start = Offset(size.width * 0.12f, size.height * yFraction),
+                end = Offset(size.width * 0.88f, size.height * yFraction),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+            drawCircle(
+                color = iconColor,
+                radius = size.minDimension * 0.11f,
+                center = Offset(size.width * knobs[index], size.height * yFraction),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MicrophoneIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onPrimary
+    Canvas(modifier) {
+        val width = size.width
+        val height = size.height
+        val stroke = (size.minDimension * 0.09f).coerceAtLeast(1.6f)
+        drawRoundRect(
+            color = iconColor,
+            topLeft = Offset(width * 0.34f, height * 0.08f),
+            size = Size(width * 0.32f, height * 0.56f),
+            cornerRadius = CornerRadius(width * 0.16f, width * 0.16f),
+        )
+        drawArc(
+            color = iconColor,
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(width * 0.18f, height * 0.34f),
+            size = Size(width * 0.64f, height * 0.48f),
+            style = Stroke(width = stroke),
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(width * 0.5f, height * 0.82f),
+            end = Offset(width * 0.5f, height * 0.96f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(width * 0.31f, height * 0.96f),
+            end = Offset(width * 0.69f, height * 0.96f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun PlayIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier) {
+        val path =
+            Path().apply {
+                moveTo(size.width * 0.34f, size.height * 0.2f)
+                lineTo(size.width * 0.76f, size.height * 0.5f)
+                lineTo(size.width * 0.34f, size.height * 0.8f)
+                close()
+            }
+        drawPath(path = path, color = iconColor)
+    }
+}
+
+@Composable
+private fun PauseIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier) {
+        drawRoundRect(
+            color = iconColor,
+            topLeft = Offset(size.width * 0.28f, size.height * 0.2f),
+            size = Size(size.width * 0.16f, size.height * 0.6f),
+            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+        )
+        drawRoundRect(
+            color = iconColor,
+            topLeft = Offset(size.width * 0.56f, size.height * 0.2f),
+            size = Size(size.width * 0.16f, size.height * 0.6f),
+            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+        )
+    }
+}
+
+@Composable
+private fun StopIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.onSurface
+    Canvas(modifier) {
+        drawRoundRect(
+            color = iconColor,
+            topLeft = Offset(size.width * 0.25f, size.height * 0.25f),
+            size = Size(size.width * 0.5f, size.height * 0.5f),
+            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+        )
+    }
 }
 
 @Composable
@@ -758,13 +1016,127 @@ private fun RecorderSettingsCard(
     showRecordingNotification: Boolean,
     onShowRecordingNotificationChanged: (Boolean) -> Unit,
 ) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        SettingsIntroCard()
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            shape = RoundedCornerShape(24.dp),
+        ) {
+            Column {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_recording),
+                    icon = { SettingsMicrophoneIcon(it) },
+                ) {
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_format),
+                        values = listOf("M4A", "WAV", "3GP"),
+                        selected = recordingFormat,
+                        onSelected = onRecordingFormatChanged,
+                        tagPrefix = "recording-format-",
+                    )
+                    HorizontalDivider()
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_sample_rate),
+                        values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
+                        selected = recordingSampleRate,
+                        onSelected = onRecordingSampleRateChanged,
+                        tagPrefix = "recording-sample-rate-",
+                    )
+                    HorizontalDivider()
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_bitrate),
+                        values = listOf("128 kbps", "256 kbps", "320 kbps"),
+                        selected = recordingBitrate,
+                        onSelected = onRecordingBitrateChanged,
+                        tagPrefix = "recording-bitrate-",
+                    )
+                    HorizontalDivider()
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_channels),
+                        values = listOf("Mono", "Stereo"),
+                        selected = recordingChannels,
+                        onSelected = onRecordingChannelsChanged,
+                        tagPrefix = "recording-channels-",
+                    )
+                }
+                SettingsListDivider()
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_playback),
+                    icon = { PlayIcon(it) },
+                ) {
+                    PlaybackDecoderChoiceRow(
+                        selected = playbackDecoderMode,
+                        onSelected = onPlaybackDecoderModeChanged,
+                    )
+                }
+                SettingsListDivider()
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_appearance),
+                    icon = { AppearanceIcon(it) },
+                ) {
+                    SettingsValueRow(
+                        label = stringResource(R.string.language_setting),
+                        value =
+                            stringResource(
+                                R.string.language_current,
+                                stringResource(
+                                    if (language == AppLanguage.SIMPLIFIED_CHINESE) {
+                                        R.string.language_chinese
+                                    } else {
+                                        R.string.language_english
+                                    },
+                                ),
+                            ),
+                    ) {
+                        LanguageSelector(
+                            language = language,
+                            onLanguageSelected = onLanguageSelected,
+                            compact = true,
+                        )
+                    }
+                    HorizontalDivider()
+                    SettingSwitchRow(
+                        label = stringResource(R.string.dark_theme),
+                        checked = darkTheme,
+                        onCheckedChange = onDarkThemeChanged,
+                    )
+                }
+                SettingsListDivider()
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_behavior),
+                    icon = { TuneIcon(it) },
+                ) {
+                    SettingSwitchRow(
+                        label = stringResource(R.string.auto_start_recording),
+                        checked = autoStartRecording,
+                        onCheckedChange = onAutoStartRecordingChanged,
+                    )
+                    HorizontalDivider()
+                    SettingSwitchRow(
+                        label = stringResource(R.string.recording_notification),
+                        checked = showRecordingNotification,
+                        onCheckedChange = onShowRecordingNotificationChanged,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsIntroCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(24.dp),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = stringResource(R.string.recorder_settings_title),
@@ -774,67 +1146,79 @@ private fun RecorderSettingsCard(
             Text(
                 text = stringResource(R.string.recorder_settings_description),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.language_setting), style = MaterialTheme.typography.bodyLarge)
-                LanguageSelector(
-                    language = language,
-                    onLanguageSelected = onLanguageSelected,
-                )
-            }
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_format),
-                values = listOf("M4A", "WAV", "3GP"),
-                selected = recordingFormat,
-                onSelected = onRecordingFormatChanged,
-                tagPrefix = "recording-format-",
-            )
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_sample_rate),
-                values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
-                selected = recordingSampleRate,
-                onSelected = onRecordingSampleRateChanged,
-                tagPrefix = "recording-sample-rate-",
-            )
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_bitrate),
-                values = listOf("128 kbps", "256 kbps", "320 kbps"),
-                selected = recordingBitrate,
-                onSelected = onRecordingBitrateChanged,
-                tagPrefix = "recording-bitrate-",
-            )
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_channels),
-                values = listOf("Mono", "Stereo"),
-                selected = recordingChannels,
-                onSelected = onRecordingChannelsChanged,
-                tagPrefix = "recording-channels-",
-            )
-            PlaybackDecoderChoiceRow(
-                selected = playbackDecoderMode,
-                onSelected = onPlaybackDecoderModeChanged,
-            )
-            SettingSwitchRow(
-                label = stringResource(R.string.dark_theme),
-                checked = darkTheme,
-                onCheckedChange = onDarkThemeChanged,
-            )
-            SettingSwitchRow(
-                label = stringResource(R.string.auto_start_recording),
-                checked = autoStartRecording,
-                onCheckedChange = onAutoStartRecordingChanged,
-            )
-            SettingSwitchRow(
-                label = stringResource(R.string.recording_notification),
-                checked = showRecordingNotification,
-                onCheckedChange = onShowRecordingNotificationChanged,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
         }
+    }
+}
+
+@Composable
+private fun SettingsGroup(
+    title: String,
+    icon: @Composable (Modifier) -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SettingsSectionIcon(icon)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        content()
+    }
+}
+
+@Composable
+private fun SettingsListDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
+@Composable
+private fun SettingsSectionIcon(icon: @Composable (Modifier) -> Unit) {
+    Surface(
+        modifier = Modifier.size(36.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = CircleShape,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            icon(Modifier.size(19.dp))
+        }
+    }
+}
+
+@Composable
+private fun SettingsValueRow(
+    label: String,
+    value: String,
+    control: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        control()
     }
 }
 
@@ -1503,7 +1887,7 @@ private fun OfflineLibrarySearchField(
                     .fillMaxWidth()
                     .testTag(OFFLINE_LIBRARY_SEARCH_TEST_TAG),
             placeholder = { Text(stringResource(R.string.offline_library_search)) },
-            leadingIcon = { Text("⌕", style = MaterialTheme.typography.titleLarge) },
+            leadingIcon = { SearchIcon(modifier = Modifier.size(20.dp)) },
             trailingIcon = {
                 if (query.isNotBlank()) {
                     TextButton(onClick = onClear) {
@@ -1800,15 +2184,13 @@ private fun LocalRecordingRow(
                         contentColor = MaterialTheme.colorScheme.onSurface,
                     ),
             ) {
-                Text(
-                    when (playbackStatus) {
-                        RecordingPlaybackStatus.PLAYING -> "Ⅱ"
-                        RecordingPlaybackStatus.PREPARING,
-                        RecordingPlaybackStatus.VERIFYING,
-                        -> "■"
-                        else -> "▶"
-                    },
-                )
+                when (playbackStatus) {
+                    RecordingPlaybackStatus.PLAYING -> PauseIcon(modifier = Modifier.size(20.dp))
+                    RecordingPlaybackStatus.PREPARING,
+                    RecordingPlaybackStatus.VERIFYING,
+                    -> StopIcon(modifier = Modifier.size(20.dp))
+                    else -> PlayIcon(modifier = Modifier.size(20.dp))
+                }
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -2532,7 +2914,7 @@ private fun RecordingCard(
                                     disabledContainerColor = RECORDER_ACCENT_RED.copy(alpha = 0.45f),
                                 ),
                         ) {
-                            Text("●", style = MaterialTheme.typography.headlineLarge)
+                            MicrophoneIcon(modifier = Modifier.size(34.dp))
                         }
                     RecordingUiStatus.READY,
                     RecordingUiStatus.SAVED,
@@ -2548,7 +2930,7 @@ private fun RecordingCard(
                             onClick = onStart,
                             colors = ButtonDefaults.buttonColors(containerColor = RECORDER_ACCENT_RED),
                         ) {
-                            Text("●", style = MaterialTheme.typography.headlineLarge)
+                            MicrophoneIcon(modifier = Modifier.size(34.dp))
                         }
                     RecordingUiStatus.RECORDING -> {
                         Button(
@@ -2560,7 +2942,7 @@ private fun RecordingCard(
                             onClick = onPause,
                             colors = ButtonDefaults.buttonColors(containerColor = RECORDER_ACCENT_RED),
                         ) {
-                            Text("Ⅱ", style = MaterialTheme.typography.headlineMedium)
+                            PauseIcon(modifier = Modifier.size(30.dp))
                         }
                         OutlinedButton(onClick = onStop) {
                             Text(stringResource(R.string.stop_recording))
@@ -2575,7 +2957,7 @@ private fun RecordingCard(
                             shape = CircleShape,
                             onClick = onResume,
                         ) {
-                            Text("▶", style = MaterialTheme.typography.headlineMedium)
+                            PlayIcon(modifier = Modifier.size(30.dp))
                         }
                         OutlinedButton(onClick = onStop) {
                             Text(stringResource(R.string.stop_recording))
@@ -2662,8 +3044,8 @@ private fun RecorderWaveform(
     elapsedMillis: Long,
 ) {
     val phase = elapsedMillis / 250.0
-    val activeColor = MaterialTheme.colorScheme.primary
-    val idleColor = MaterialTheme.colorScheme.outlineVariant
+    val activeColor = RECORDER_ACCENT_RED
+    val idleColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)
     Canvas(
         modifier =
             Modifier

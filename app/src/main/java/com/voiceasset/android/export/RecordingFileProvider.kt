@@ -74,10 +74,10 @@ class RecordingFileProvider : ContentProvider() {
         if (!isSupportedRecordingName(fileName)) {
             return null
         }
-        val requestedDirectory = File(providerContext.filesDir, RECORDING_DIRECTORY).absoluteFile
+        val requestedDirectory = File(providerContext.filesDir, RECORDING_DIRECTORY)
         val directory = requestedDirectory.canonicalFile
         val file = File(directory, fileName).canonicalFile
-        if (directory.path != requestedDirectory.path || file.parentFile != directory || !file.isFile) {
+        if (file.parentFile != directory || !file.isFile) {
             return null
         }
         return ResolvedRecording(file = file, mimeType = mimeType(fileName))

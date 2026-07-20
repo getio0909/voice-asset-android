@@ -10,6 +10,7 @@ import android.media.MediaPlayer
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.voiceasset.android.data.RecordingStore
 import com.voiceasset.android.export.RecordingFileVerifier
 import kotlinx.coroutines.CoroutineScope
@@ -65,12 +66,18 @@ private class MediaPlayerRecordingPlaybackEngine(
         player.setAudioAttributes(playbackAudioAttributes)
         player.setOnPreparedListener { listener.onPrepared() }
         player.setOnCompletionListener { listener.onCompletion() }
-        player.setOnErrorListener { _, _, _ ->
+        player.setOnErrorListener { _, what, extra ->
+            Log.e(TAG, "MediaPlayer error what=$what extra=$extra")
             listener.onError()
             true
         }
-        player.setDataSource(file.absolutePath)
-        player.prepareAsync()
+        try {
+            player.setDataSource(file.absolutePath)
+            player.prepareAsync()
+        } catch (exception: Exception) {
+            Log.e(TAG, "MediaPlayer prepare failed", exception)
+            throw exception
+        }
     }
 
     private fun hasHardwareDecoder(file: File): Boolean {
@@ -136,9 +143,15 @@ private class AndroidRecordingPlaybackFocus(
                 Handler(Looper.getMainLooper()),
             ).build()
 
-    override fun request(): Boolean = audioManager.requestAudioFocus(request) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    override fun request(): Boolean {
+        val result = audioManager.requestAudioFocus(request)
+        Log.i(TAG, "Audio focus request result=$result")
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
 
     override fun abandon() {
         audioManager.abandonAudioFocusRequest(request)
     }
 }
+
+private const val TAG = "VoiceAssetPlayback"
