@@ -480,6 +480,92 @@ private fun SettingsIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun SettingsMicrophoneIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier) {
+        val stroke = (size.minDimension * 0.1f).coerceAtLeast(1.5f)
+        drawRoundRect(
+            color = iconColor,
+            topLeft = Offset(size.width * 0.35f, size.height * 0.1f),
+            size = Size(size.width * 0.3f, size.height * 0.5f),
+            cornerRadius = CornerRadius(size.width * 0.15f, size.width * 0.15f),
+        )
+        drawArc(
+            color = iconColor,
+            startAngle = 0f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(size.width * 0.2f, size.height * 0.3f),
+            size = Size(size.width * 0.6f, size.height * 0.5f),
+            style = Stroke(width = stroke),
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.5f, size.height * 0.8f),
+            end = Offset(size.width * 0.5f, size.height * 0.94f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(size.width * 0.3f, size.height * 0.94f),
+            end = Offset(size.width * 0.7f, size.height * 0.94f),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+@Composable
+private fun AppearanceIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(
+            color = iconColor,
+            radius = size.minDimension * 0.22f,
+            center = center,
+        )
+        repeat(8) { index ->
+            val angle = index * (Math.PI / 4.0)
+            val inner = size.minDimension * 0.34f
+            val outer = size.minDimension * 0.46f
+            drawLine(
+                color = iconColor,
+                start = Offset(center.x + kotlin.math.cos(angle).toFloat() * inner, center.y + kotlin.math.sin(angle).toFloat() * inner),
+                end = Offset(center.x + kotlin.math.cos(angle).toFloat() * outer, center.y + kotlin.math.sin(angle).toFloat() * outer),
+                strokeWidth = size.minDimension * 0.09f,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TuneIcon(modifier: Modifier = Modifier) {
+    val iconColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier) {
+        val stroke = size.minDimension * 0.1f
+        val tracks = listOf(0.25f, 0.5f, 0.75f)
+        val knobs = listOf(0.65f, 0.35f, 0.58f)
+        tracks.forEachIndexed { index, yFraction ->
+            drawLine(
+                color = iconColor,
+                start = Offset(size.width * 0.12f, size.height * yFraction),
+                end = Offset(size.width * 0.88f, size.height * yFraction),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+            drawCircle(
+                color = iconColor,
+                radius = size.minDimension * 0.11f,
+                center = Offset(size.width * knobs[index], size.height * yFraction),
+            )
+        }
+    }
+}
+
+@Composable
 private fun MicrophoneIcon(modifier: Modifier = Modifier) {
     val iconColor = MaterialTheme.colorScheme.onPrimary
     Canvas(modifier) {
@@ -935,85 +1021,108 @@ private fun RecorderSettingsCard(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         SettingsIntroCard()
-        SettingsGroup(title = stringResource(R.string.settings_section_recording)) {
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_format),
-                values = listOf("M4A", "WAV", "3GP"),
-                selected = recordingFormat,
-                onSelected = onRecordingFormatChanged,
-                tagPrefix = "recording-format-",
-            )
-            HorizontalDivider()
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_sample_rate),
-                values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
-                selected = recordingSampleRate,
-                onSelected = onRecordingSampleRateChanged,
-                tagPrefix = "recording-sample-rate-",
-            )
-            HorizontalDivider()
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_bitrate),
-                values = listOf("128 kbps", "256 kbps", "320 kbps"),
-                selected = recordingBitrate,
-                onSelected = onRecordingBitrateChanged,
-                tagPrefix = "recording-bitrate-",
-            )
-            HorizontalDivider()
-            SettingChoiceRow(
-                label = stringResource(R.string.recording_channels),
-                values = listOf("Mono", "Stereo"),
-                selected = recordingChannels,
-                onSelected = onRecordingChannelsChanged,
-                tagPrefix = "recording-channels-",
-            )
-        }
-        SettingsGroup(title = stringResource(R.string.settings_section_playback)) {
-            PlaybackDecoderChoiceRow(
-                selected = playbackDecoderMode,
-                onSelected = onPlaybackDecoderModeChanged,
-            )
-        }
-        SettingsGroup(title = stringResource(R.string.settings_section_appearance)) {
-            SettingsValueRow(
-                label = stringResource(R.string.language_setting),
-                value =
-                    stringResource(
-                        R.string.language_current,
-                        stringResource(
-                            if (language == AppLanguage.SIMPLIFIED_CHINESE) {
-                                R.string.language_chinese
-                            } else {
-                                R.string.language_english
-                            },
-                        ),
-                    ),
-            ) {
-                LanguageSelector(
-                    language = language,
-                    onLanguageSelected = onLanguageSelected,
-                    compact = true,
-                )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            shape = RoundedCornerShape(24.dp),
+        ) {
+            Column {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_recording),
+                    icon = { SettingsMicrophoneIcon(it) },
+                ) {
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_format),
+                        values = listOf("M4A", "WAV", "3GP"),
+                        selected = recordingFormat,
+                        onSelected = onRecordingFormatChanged,
+                        tagPrefix = "recording-format-",
+                    )
+                    HorizontalDivider()
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_sample_rate),
+                        values = listOf("16 kHz", "44.1 kHz", "48 kHz"),
+                        selected = recordingSampleRate,
+                        onSelected = onRecordingSampleRateChanged,
+                        tagPrefix = "recording-sample-rate-",
+                    )
+                    HorizontalDivider()
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_bitrate),
+                        values = listOf("128 kbps", "256 kbps", "320 kbps"),
+                        selected = recordingBitrate,
+                        onSelected = onRecordingBitrateChanged,
+                        tagPrefix = "recording-bitrate-",
+                    )
+                    HorizontalDivider()
+                    SettingChoiceRow(
+                        label = stringResource(R.string.recording_channels),
+                        values = listOf("Mono", "Stereo"),
+                        selected = recordingChannels,
+                        onSelected = onRecordingChannelsChanged,
+                        tagPrefix = "recording-channels-",
+                    )
+                }
+                SettingsListDivider()
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_playback),
+                    icon = { PlayIcon(it) },
+                ) {
+                    PlaybackDecoderChoiceRow(
+                        selected = playbackDecoderMode,
+                        onSelected = onPlaybackDecoderModeChanged,
+                    )
+                }
+                SettingsListDivider()
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_appearance),
+                    icon = { AppearanceIcon(it) },
+                ) {
+                    SettingsValueRow(
+                        label = stringResource(R.string.language_setting),
+                        value =
+                            stringResource(
+                                R.string.language_current,
+                                stringResource(
+                                    if (language == AppLanguage.SIMPLIFIED_CHINESE) {
+                                        R.string.language_chinese
+                                    } else {
+                                        R.string.language_english
+                                    },
+                                ),
+                            ),
+                    ) {
+                        LanguageSelector(
+                            language = language,
+                            onLanguageSelected = onLanguageSelected,
+                            compact = true,
+                        )
+                    }
+                    HorizontalDivider()
+                    SettingSwitchRow(
+                        label = stringResource(R.string.dark_theme),
+                        checked = darkTheme,
+                        onCheckedChange = onDarkThemeChanged,
+                    )
+                }
+                SettingsListDivider()
+                SettingsGroup(
+                    title = stringResource(R.string.settings_section_behavior),
+                    icon = { TuneIcon(it) },
+                ) {
+                    SettingSwitchRow(
+                        label = stringResource(R.string.auto_start_recording),
+                        checked = autoStartRecording,
+                        onCheckedChange = onAutoStartRecordingChanged,
+                    )
+                    HorizontalDivider()
+                    SettingSwitchRow(
+                        label = stringResource(R.string.recording_notification),
+                        checked = showRecordingNotification,
+                        onCheckedChange = onShowRecordingNotificationChanged,
+                    )
+                }
             }
-            HorizontalDivider()
-            SettingSwitchRow(
-                label = stringResource(R.string.dark_theme),
-                checked = darkTheme,
-                onCheckedChange = onDarkThemeChanged,
-            )
-        }
-        SettingsGroup(title = stringResource(R.string.settings_section_behavior)) {
-            SettingSwitchRow(
-                label = stringResource(R.string.auto_start_recording),
-                checked = autoStartRecording,
-                onCheckedChange = onAutoStartRecordingChanged,
-            )
-            HorizontalDivider()
-            SettingSwitchRow(
-                label = stringResource(R.string.recording_notification),
-                checked = showRecordingNotification,
-                onCheckedChange = onShowRecordingNotificationChanged,
-            )
         }
     }
 }
@@ -1046,24 +1155,46 @@ private fun SettingsIntroCard() {
 @Composable
 private fun SettingsGroup(
     title: String,
+    icon: @Composable (Modifier) -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(24.dp),
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            SettingsSectionIcon(icon)
             Text(
                 text = title,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
             )
-            content()
+        }
+        content()
+    }
+}
+
+@Composable
+private fun SettingsListDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = 20.dp),
+        color = MaterialTheme.colorScheme.outlineVariant,
+    )
+}
+
+@Composable
+private fun SettingsSectionIcon(icon: @Composable (Modifier) -> Unit) {
+    Surface(
+        modifier = Modifier.size(36.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        shape = CircleShape,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            icon(Modifier.size(19.dp))
         }
     }
 }
